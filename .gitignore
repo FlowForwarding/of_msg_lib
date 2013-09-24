@@ -1,0 +1,9 @@
+*.beam
+*.app
+*.eqc
+erl_crash.dump
+/deps
+/rel/openflow
+/doc/
+/.eunit/
+/log
