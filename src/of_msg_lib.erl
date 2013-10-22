@@ -27,7 +27,8 @@
 
 %% API
 
--export([get_features/1,
+-export([decode/1,
+         get_features/1,
          get_config/1,
          set_config/3,
          send_packet/4,
