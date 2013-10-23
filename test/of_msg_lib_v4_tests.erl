@@ -16,7 +16,7 @@
 
 %% @author Erlang Solutions Ltd. <openflow@erlang-solutions.com>
 %% @copyright 2013 FlowForwarding.org
--module(of_msg_lib_tests).
+-module(of_msg_lib_v4_tests).
 
 -include_lib("eunit/include/eunit.hrl").
 -include_lib("of_protocol/include/of_protocol.hrl").
