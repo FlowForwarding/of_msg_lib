@@ -293,7 +293,8 @@
 %%--------------------------------------------------------------------
 -spec decode(ofp_message()) -> {xid(), proplists:proplist()}.
 decode(#ofp_message{ version = ?V4, xid = Xid, body = Body }) ->
-    {Xid, of_msg_lib_v4:decode(Body)}.
+    {Name, Res} = of_msg_lib_v4:decode(Body),
+    {Name, Xid, Res}.
 
 
 %%--------------------------------------------------------------------

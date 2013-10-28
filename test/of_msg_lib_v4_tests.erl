@@ -20,6 +20,7 @@
 
 -include_lib("eunit/include/eunit.hrl").
 -include_lib("of_protocol/include/of_protocol.hrl").
+-include_lib("of_protocol/include/ofp_v4.hrl").
 
 -define(V4, 4).
 -define(MAC_ADDR, <<1,2,3,4,5,6>>).
@@ -69,6 +70,40 @@ of_msg_lib_test_() ->
      {"meter modify", fun meter_modify/0},
      {"meter delete", fun meter_delete/0}
     ].
+
+decode_test_() ->
+    [
+     {"Features reply", fun dec_features_reply/0},
+     {"Config reply", fun dec_config_reply/0},
+     {"Desc reply", fun dec_desc_reply/0},
+     {"Aggregate stats reply", fun dec_aggregate_stats_reply/0},
+     {"Group features reply", fun dec_group_features_reply/0},
+     {"Meter features reply", fun dec_meter_features_reply/0},
+     {"Experimenter reply", fun dec_experimenter_reply/0},
+     {"Queue get config reply", fun dec_queue_get_config_reply/0},
+     {"Barrier reply", fun dec_barrier_reply/0},
+     {"Role reply", fun dec_role_reply/0},
+     {"Get async reply", fun dec_get_async_reply/0},
+     {"Flow stats reply", fun dec_flow_stats_reply/0},
+     {"Table stats reply", fun dec_table_stats_reply/0},
+     {"Table features reply", fun dec_table_features_reply/0},
+     {"Port stats reply", fun dec_port_stats_reply/0},
+     {"Port desc reply", fun dec_port_desc_reply/0},
+     {"Queue stats reply", fun dec_queue_stats_reply/0},
+     {"Group stats reply", fun dec_group_stats_reply/0},
+     {"Group desc reply", fun dec_group_desc_reply/0},
+     {"Meter stats reply", fun dec_meter_stats_reply/0},
+     {"Meter config reply", fun dec_meter_config_reply/0},
+     {"packet_in", fun dec_packet_in/0},
+     {"flow_removed", fun dec_flow_removed/0},
+     {"Port status", fun dec_port_status/0},
+     {"Error msg", fun dec_error_msg/0},
+     {"Error msg experimenter", fun dec_error_msg_experimenter/0},
+     {"Echo request", fun dec_echo_request/0},
+     {"Echo reply", fun dec_echo_reply/0},
+     {"Experimenter", fun dec_experimenter/0}
+    ].
+
 
 get_features() ->
     Msg = of_msg_lib:get_features(?V4),
@@ -313,6 +348,792 @@ meter_delete() ->
     Msg = of_msg_lib:meter_delete(?V4, 10),
     ?assertEqual(Msg, encode_decode(?V4, Msg)).
 
+
+dec_features_reply() ->
+    Body = #ofp_features_reply{
+             datapath_mac = ?MAC_ADDR,
+             datapath_id = 100,
+             n_buffers = 1024,
+             n_tables = 128,
+             auxiliary_id = 1,
+             capabilities = [flow_stats,
+                             table_stats,
+                             port_stats,
+                             group_stats,
+                             ip_reasm,
+                             queue_stats,
+                             port_blocked]
+            },
+    Expect = {features_reply, 2,
+              [{datapath_mac,<<1,2,3,4,5,6>>},
+               {datapath_id,100},
+               {n_buffers,1024},
+               {n_tables,128},
+               {auxiliary_id,1},
+               {capabilities,[flow_stats,
+                              table_stats,
+                              port_stats,
+                              group_stats,
+                              ip_reasm,
+                              queue_stats,
+                              port_blocked]}]},
+    Msg = #ofp_message{version = ?V4, xid=2, body = Body},
+    Res = of_msg_lib:decode(Msg),
+    ?assertEqual(Expect, Res).
+
+dec_config_reply() ->
+    Body = #ofp_get_config_reply{
+              flags = [],
+              miss_send_len = 128
+             },
+    Expect = {config_reply, 2,
+              [{flags, []},
+               {miss_send_len, 128}]},
+    Msg = #ofp_message{version = ?V4, xid=2, body = Body},
+    Res = of_msg_lib:decode(Msg),
+    ?assertEqual(Expect, Res).
+
+dec_desc_reply() ->
+    Flags = [],
+    Mfr_desc = <<"Manufacturer Name">>,
+    Hw_desc = <<"Switch Name">>,
+    Sw_desc = <<"Software Version">>,
+    Serial_num = <<"Serial Num">>,
+    Dp_desc = <<"DP Desc">>,
+    Body = #ofp_desc_reply{
+              flags = Flags,
+              mfr_desc = Mfr_desc,
+              hw_desc = Hw_desc,
+              sw_desc = Sw_desc,
+              serial_num = Serial_num,
+              dp_desc = Dp_desc
+             },
+    Expect = {desc_reply, 2, [{flags, Flags},
+                              {mfr_desc, Mfr_desc},
+                              {hw_desc, Hw_desc},
+                              {sw_desc, Sw_desc},
+                              {serial_num, Serial_num},
+                              {dp_desc, Dp_desc}]},
+    Msg = #ofp_message{version = ?V4, xid=2, body = Body},
+    Res = of_msg_lib:decode(Msg),
+    ?assertEqual(Expect, Res).
+
+dec_aggregate_stats_reply() ->
+    Flags = [],
+    Packet_count = 10,
+    Byte_count = 100,
+    Flow_count = 3,
+    Body = #ofp_aggregate_stats_reply{
+              flags = Flags,
+              packet_count = Packet_count,
+              byte_count = Byte_count,
+              flow_count = Flow_count
+             },
+    Expect = {aggregate_stats_reply, 2, [{flags, Flags},
+                                         {packet_count, Packet_count},
+                                         {byte_count, Byte_count},
+                                         {flow_count, Flow_count}]},
+    Msg = #ofp_message{version = ?V4, xid=2, body = Body},
+    Res = of_msg_lib:decode(Msg),
+    ?assertEqual(Expect, Res).
+
+dec_group_features_reply() ->
+    Flags = [],
+    Types = [all,
+             select,
+             indirect,
+             ff],
+    Capabilities = [select_weight,
+                    select_liveness,
+                    chaining,
+                    chaining_checks],
+    Max_groups = {1,2,3,4},
+    ActionSet = [copy_ttl_in,
+                 pop_mpls,
+                 pop_pbb,
+                 pop_vlan,
+                 push_mpls,
+                 push_pbb,
+                 push_vlan,
+                 copy_ttl_out,
+                 dec_mpls_ttl,
+                 dec_nw_ttl,
+                 set_mpls_ttl,
+                 set_nw_ttl,
+                 set_field,
+                 set_queue,
+                 group,
+                 output,
+                 experimenter],
+    Actions = {ActionSet,ActionSet,ActionSet,ActionSet},
+    Body = #ofp_group_features_reply{
+              flags = Flags,
+              types = Types,
+              capabilities = Capabilities,
+              max_groups = Max_groups,
+              actions = Actions
+             },
+    Expect = {group_features_reply, 2, [{flags, Flags},
+                                     {types, Types},
+                                     {capabilities, Capabilities},
+                                     {max_groups, Max_groups},
+                                     {actions, Actions}]},
+    Msg = #ofp_message{version = ?V4, xid=2, body = Body},
+    Res = of_msg_lib:decode(Msg),
+    ?assertEqual(Expect, Res).
+
+dec_meter_features_reply() ->
+    Flags = [],
+    Max_meter = 20,
+    Band_types = [drop,
+                  dscp_remark,
+                  experimenter],
+    Capabilities = [kbps,
+                    pktps,
+                    burst,
+                    stats],
+    Max_bands = 20,
+    Max_color = 30,
+    Body = #ofp_meter_features_reply{
+              flags = Flags,
+              max_meter = Max_meter,
+              band_types = Band_types,
+              capabilities = Capabilities,
+              max_bands = Max_bands,
+              max_color = Max_color
+             },
+    Expect = {meter_features_reply, 2, [{flags, Flags},
+                                        {max_meter, Max_meter},
+                                        {band_types, Band_types},
+                                        {capabilities, Capabilities},
+                                        {max_bands, Max_bands},
+                                        {max_color, Max_color}]},
+    Msg = #ofp_message{version = ?V4, xid=2, body = Body},
+    Res = of_msg_lib:decode(Msg),
+    ?assertEqual(Expect, Res).
+
+dec_experimenter_reply() ->
+    Flags = [],
+    Experimenter = 33,
+    Exp_type = 2,
+    Data = <<1,2,3,4,5>>,
+    Body = #ofp_experimenter_reply{
+          flags = Flags,
+          experimenter = Experimenter,
+          exp_type = Exp_type,
+          data = Data
+         },
+    Expect = {experimenter_reply, 2, [{flags, Flags},
+                                      {experimenter, Experimenter},
+                                      {exp_type, Exp_type},
+                                      {data, Data}]},
+    Msg = #ofp_message{version = ?V4, xid=2, body = Body},
+    Res = of_msg_lib:decode(Msg),
+    ?assertEqual(Expect, Res).
+
+dec_queue_get_config_reply() ->
+    QueueId = 6,
+    PortNo = 2,
+    Queues = [#ofp_packet_queue{
+                 queue_id = QueueId,
+                 port_no = PortNo,
+                 properties = [#ofp_queue_prop_min_rate{ rate = 2048 },
+                               #ofp_queue_prop_max_rate{ rate = 4096 },
+                               #ofp_queue_prop_experimenter{
+                                  experimenter = 22,
+                                  data = <<2,2,2,2,2,2,2>>
+                                 }]}],
+    Body = #ofp_queue_get_config_reply{
+              port = PortNo,
+              queues = Queues
+             },
+    ExpQueues = [[{queue_id, QueueId},
+                  {port_no, PortNo},
+                  {properties, [{min_rate, 2048},
+                                {max_rate,4096},
+                                {experimenter, 22, <<2,2,2,2,2,2,2>>}]}]],
+    Expect = {queue_get_config_reply, 2, [{port, PortNo},
+                                          {queues, ExpQueues}]},
+    Msg = #ofp_message{version = ?V4, xid=2, body = Body},
+    Res = of_msg_lib:decode(Msg),
+    ?assertEqual(Expect, Res).
+
+dec_barrier_reply() ->
+    Body = #ofp_barrier_reply{},
+    Expect = {barrier_reply, 2, []},
+    Msg = #ofp_message{version = ?V4, xid=2, body = Body},
+    Res = of_msg_lib:decode(Msg),
+    ?assertEqual(Expect, Res).
+
+dec_role_reply() ->
+    Role = 0,
+    Generation_id = 0,
+    Body = #ofp_role_reply{
+              role = Role,
+              generation_id = Generation_id
+         },
+    Expect = {role_reply, 2, [{role, Role},
+                              {generation_id, Generation_id}]},
+
+    Msg = #ofp_message{version = ?V4, xid=2, body = Body},
+    Res = of_msg_lib:decode(Msg),
+    ?assertEqual(Expect, Res).
+
+dec_get_async_reply() ->
+    PacketInReason = [no_match,
+                      action,
+                      invalid_ttl],
+    PortStatusMask = [add,
+                      delete,
+                      modify],
+    FlowRemovedMask = [idle_timeout,
+                       hard_timeout,
+                       delete,
+                       group_delete],
+    Packet_in_mask = {PacketInReason, PacketInReason},
+    Port_status_mask = {PortStatusMask, PortStatusMask},
+    Flow_removed_mask = {FlowRemovedMask, FlowRemovedMask},
+    Body = #ofp_get_async_reply{
+          packet_in_mask = Packet_in_mask,
+          port_status_mask = Port_status_mask,
+          flow_removed_mask = Flow_removed_mask
+         },
+    Expect = {get_async_reply, 2, [{packet_in_mask, Packet_in_mask},
+                                   {port_status_mask, Port_status_mask},
+                                   {flow_removed_mask, Flow_removed_mask}]},
+    Msg = #ofp_message{version = ?V4, xid=2, body = Body},
+    Res = of_msg_lib:decode(Msg),
+    ?assertEqual(Expect, Res).
+
+dec_flow_stats_reply() ->
+    Flags = [],
+    Stats = [#ofp_flow_stats{
+                table_id = 2,
+                duration_sec = 123445566,
+                duration_nsec = 2223,
+                priority = 10,
+                idle_timeout = 30000,
+                hard_timeout = 90000,
+                flags = [send_flow_rem],
+                cookie = <<1,2,3,4,5,6>>,
+                packet_count = 24000,
+                byte_count = 200000,
+                match = #ofp_match{ fields = [#ofp_field{name = in_port, value = 6},
+                                              #ofp_field{name = eth_dst,
+                                                         value = <<0,0,0,0,0,8>>}]},
+                instructions = [#ofp_instruction_write_actions{
+                                   actions = [#ofp_action_group{group_id = 3}]}]
+               }],
+    Body = #ofp_flow_stats_reply{ flags = Flags,
+                                  body = Stats },
+    ExpFlows = [[{table_id, 2},
+                 {duration_sec, 123445566},
+                 {duration_nsec, 2223},
+                 {priority, 10},
+                 {idle_timeout, 30000},
+                 {hard_timeout, 90000},
+                 {flags, [send_flow_rem]},
+                 {cookie, <<1,2,3,4,5,6>>},
+                 {packet_count, 24000},
+                 {byte_count, 200000},
+                 {match, [{in_port,6}, {eth_dst,<<0,0,0,0,0,8>>}]},
+                 {instructions, [{write_actions,[{group_id,3}]}]}]],
+    Expect = {flow_stats_reply, 2, [{flags, Flags},
+                                    {flows, ExpFlows}]},
+    Msg = #ofp_message{version = ?V4, xid=2, body = Body},
+    Res = of_msg_lib:decode(Msg),
+    ?assertEqual(Expect, Res).
+
+dec_table_stats_reply() ->
+    Flags = [],
+    Stats = [#ofp_table_stats{
+                table_id = 10,
+                active_count =  256,
+                lookup_count = 2345,
+                matched_count = 99
+               }],
+    ExpStats = [[{table_id, 10},
+                 {active_count, 256},
+                 {lookup_count, 2345},
+                 {matched_count, 99}]],
+    Body = #ofp_table_stats_reply{ flags = Flags,
+                                   body = Stats },
+    Expect = {table_stats_reply, 2, [{flags, Flags},
+                                     {tables, ExpStats}]},
+    Msg = #ofp_message{version = ?V4, xid=2, body = Body},
+    Res = of_msg_lib:decode(Msg),
+    ?assertEqual(Expect, Res).
+
+dec_table_features_reply() ->
+    Flags = [],
+    Features = [],
+    ExpFeatures = [],
+    Body = #ofp_table_features_reply{ flags = Flags,
+                                      body = Features },
+    Expect = {table_features_reply, [{flags, Flags},
+                                     {tables, ExpFeatures}]},
+    Msg = #ofp_message{version = ?V4, xid=2, body = Body},
+    Res = of_msg_lib:decode(Msg),
+    ?assertEqual(Expect, Res).
+
+dec_port_stats_reply() ->
+    Flags = [],
+    Port_no = 1001,
+    Rx_packets = 1002,
+    Tx_packets = 1003,
+    Rx_bytes = 1004,
+    Tx_bytes = 1005,
+    Rx_dropped = 1006,
+    Tx_dropped = 1007,
+    Rx_errors = 1008,
+    Tx_errors = 1009,
+    Rx_frame_err = 10010,
+    Rx_over_err = 10011,
+    Rx_crc_err = 10012,
+    Collisions = 10013,
+    Duration_sec = 10014,
+    Duration_nsec = 10015,
+    Ports = [#ofp_port_stats{
+                port_no = Port_no,
+                rx_packets = Rx_packets,
+                tx_packets = Tx_packets,
+                rx_bytes = Rx_bytes,
+                tx_bytes = Tx_bytes,
+                rx_dropped = Rx_dropped,
+                tx_dropped = Tx_dropped,
+                rx_errors = Rx_errors,
+                tx_errors = Tx_errors,
+                rx_frame_err = Rx_frame_err,
+                rx_over_err = Rx_over_err,
+                rx_crc_err = Rx_crc_err,
+                collisions = Collisions,
+                duration_sec = Duration_sec,
+                duration_nsec = Duration_nsec}],
+
+    ExpStats = [[{port_no, Port_no},
+                 {rx_packets, Rx_packets},
+                 {tx_packets, Tx_packets},
+                 {rx_bytes, Rx_bytes},
+                 {tx_bytes, Tx_bytes},
+                 {rx_dropped, Rx_dropped},
+                 {tx_dropped, Tx_dropped},
+                 {rx_errors, Rx_errors},
+                 {tx_errors, Tx_errors},
+                 {rx_frame_err, Rx_frame_err},
+                 {rx_over_err, Rx_over_err},
+                 {rx_crc_err, Rx_crc_err},
+                 {collisions, Collisions},
+                 {duration_sec, Duration_sec},
+                 {duration_nsec, Duration_nsec}]],
+
+    Body = #ofp_port_stats_reply{ flags = Flags,
+                                  body = Ports },
+    Expect = {port_stats_reply, 2, [{flags, Flags},
+                                    {ports, ExpStats}]},
+    Msg = #ofp_message{version = ?V4, xid=2, body = Body},
+    Res = of_msg_lib:decode(Msg),
+    ?assertEqual(Expect, Res).
+
+dec_port_desc_reply() ->
+    Flags = [],
+    Port_no = 24,
+    Hw_addr = <<1,2,3,4,5,6>>,
+    Name = <<"Port24">>,
+    Config = [port_down,
+              no_recv,
+              no_fwd,
+              no_packet_in],
+    State = [link_down,
+             blocked,
+             live],
+    Curr = ['100mb_hd'],
+    Advertised = ['100mb_hd'],
+    Supported = ['100mb_hd'],
+    Peer = ['100mb_hd'],
+    Curr_speed = 100,
+    Max_speed = 1000,
+    Ports = [#ofp_port{
+                port_no = Port_no,
+                hw_addr = Hw_addr,
+                name = Name,
+                config = Config,
+                state = State,
+                curr = Curr,
+                advertised = Advertised,
+                supported = Supported,
+                peer = Peer,
+                curr_speed = Curr_speed,
+                max_speed = Max_speed
+               }],
+    ExpPorts = [[{port_no, Port_no},
+                 {hw_addr, Hw_addr},
+                 {name, Name},
+                 {config, Config},
+                 {state, State},
+                 {curr, Curr},
+                 {advertised, Advertised},
+                 {supported, Supported},
+                 {peer, Peer},
+                 {curr_speed, Curr_speed},
+                 {max_speed, Max_speed}]],
+    Body = #ofp_port_desc_reply{ flags = Flags,
+                                 body = Ports },
+    Expect = {port_desc_reply, 2, [{flags, Flags},
+                                   {ports, ExpPorts}]},
+    Msg = #ofp_message{version = ?V4, xid=2, body = Body},
+    Res = of_msg_lib:decode(Msg),
+    ?assertEqual(Expect, Res).
+
+dec_queue_stats_reply() ->
+    Flags = [],
+    Port_no = 3,
+    Queue_id = 7,
+    Tx_bytes = 10234,
+    Tx_packets = 245,
+    Tx_errors = 4,
+    Duration_sec = 1223456,
+    Duration_nsec = 12345,
+    Queues = [#ofp_queue_stats{
+                 port_no = Port_no,
+                 queue_id = Queue_id,
+                 tx_bytes = Tx_bytes,
+                 tx_packets = Tx_packets,
+                 tx_errors = Tx_errors,
+                 duration_sec = Duration_sec,
+                 duration_nsec = Duration_nsec
+                }],
+    ExpQueues = [[{port_no, Port_no},
+                  {queue_id, Queue_id},
+                  {tx_bytes, Tx_bytes},
+                  {tx_packets, Tx_packets},
+                  {tx_errors, Tx_errors},
+                  {duration_sec, Duration_sec},
+                  {duration_nsec, Duration_nsec}]],
+    Body = #ofp_queue_stats_reply{ flags = Flags,
+                                   body = Queues },
+    Expect = {queue_stats_reply,2, [{flags, Flags},
+                                    {queues, ExpQueues}]},
+    Msg = #ofp_message{version = ?V4, xid=2, body = Body},
+    Res = of_msg_lib:decode(Msg),
+    ?assertEqual(Expect, Res).
+
+dec_group_stats_reply() ->
+    Flags = [],
+    BucketsPs1 = 123,
+    BucketBs1 = 234,
+    BucketsPs2 = 345,
+    BucketBs2 = 456,
+    BucketStats = [#ofp_bucket_counter{
+                      packet_count = BucketsPs1,
+                      byte_count   = BucketBs1},
+                   #ofp_bucket_counter{
+                      packet_count = BucketsPs2,
+                      byte_count   = BucketBs2
+                     }],
+    Group_id = 2,
+    Ref_count = 4,
+    Packet_count = 567,
+    Byte_count = 687,
+    Duration_sec = 12345,
+    Duration_nsec = 4567889,
+    Groups = [#ofp_group_stats{
+                 group_id = Group_id,
+                 ref_count = Ref_count,
+                 packet_count = Packet_count,
+                 byte_count = Byte_count,
+                 duration_sec = Duration_sec,
+                 duration_nsec = Duration_nsec,
+                 bucket_stats = BucketStats
+                }],
+    Body = #ofp_group_stats_reply{ flags = Flags,
+                                   body = Groups },
+    ExpStats = [[{group_id, Group_id},
+                 {ref_count, Ref_count},
+                 {packet_count, Packet_count},
+                 {byte_count, Byte_count},
+                 {duration_sec, Duration_sec},
+                 {duration_nsec, Duration_nsec},
+                 {bucket_stats, [[{packet_count, BucketsPs1},
+                                  {byte_count, BucketBs1}],
+                                 [{packet_count, BucketsPs2},
+                                  {byte_count, BucketBs2}]]}]],
+    Expect = {group_stats_reply, 2, [{flags, Flags},
+                                     {groups, ExpStats}]},
+    Msg = #ofp_message{version = ?V4, xid=2, body = Body},
+    Res = of_msg_lib:decode(Msg),
+    ?assertEqual(Expect, Res).
+
+dec_group_desc_reply() ->
+    Flags = [],
+    Type = all,
+    Group_id = 23,
+    Buckets = [#ofp_bucket{
+                  weight = 1,
+                  watch_port = 3,
+                  watch_group = 4,
+                  actions = [#ofp_action_pop_mpls{ethertype = 234}]
+                 }],
+    Groups = [#ofp_group_desc_stats{
+                 type = Type,
+                 group_id = Group_id,
+                 buckets = Buckets
+                }],
+    Body = #ofp_group_desc_reply{ flags = Flags,
+                                  body = Groups },
+    ExpDesc = [[
+                {type, Type},
+                {group_id, Group_id},
+                {buckets, [[{weight, 1},
+                            {watch_port, 3},
+                            {watch_group, 4},
+                            {actions, [{pop_mpls, 234}]}
+                           ]]}]],
+    Expect = {group_desc_reply, 2, [{flags, Flags},
+                                    {groups, ExpDesc}]},
+    Msg = #ofp_message{version = ?V4, xid=2, body = Body},
+    Res = of_msg_lib:decode(Msg),
+    ?assertEqual(Expect, Res).
+
+dec_meter_stats_reply() ->
+    Flags = [],
+    Meters = [#ofp_meter_stats{
+                 meter_id = 3,
+                 flow_count = 4,
+                 packet_in_count = 5,
+                 byte_in_count = 5,
+                 duration_sec = 7,
+                 duration_nsec = 9,
+                 band_stats = [#ofp_meter_band_stats{
+                                  packet_band_count = 45,
+                                  byte_band_count = 67}]}],
+    Body = #ofp_meter_stats_reply{ flags = Flags,
+                                   body = Meters},
+    ExpMeters = [[{meter_id, 3},
+                 {flow_count, 4},
+                 {packet_in_count, 5},
+                 {byte_in_count, 5},
+                 {duration_sec, 7},
+                 {duration_nsec, 9},
+                 {band_stats, [[{packet_band_count, 45},
+                                 {byte_band_count, 67}]]}]],
+
+    Expect = {meter_stats_reply, 2, [{flags, Flags},
+                                     {meters, ExpMeters}]},
+    Msg = #ofp_message{version = ?V4, xid=2, body = Body},
+    Res = of_msg_lib:decode(Msg),
+    ?assertEqual(Expect, Res).
+
+dec_meter_config_reply() ->
+    Flags = [],
+    Bands = [#ofp_meter_band_drop{
+                rate = 123,
+                burst_size = 9999
+               }],
+    Meters = [#ofp_meter_config{
+                 flags = [add],
+                 meter_id = 3,
+                 bands = Bands}],
+    Body = #ofp_meter_config_reply{ flags = Flags,
+                                    body = Meters },
+    ExpMeters = [[{flags, [add]},
+                  {meter_id, 3},
+                  {bands, [[{type, drop},
+                            {rate, 123},
+                            {burst_size, 9999}
+                           ]]}]],
+
+    Expect = {meter_config_reply, 2, [{flags, Flags},
+                                      {meters, ExpMeters}]},
+
+    Msg = #ofp_message{version = ?V4, xid=2, body = Body},
+    Res = of_msg_lib:decode(Msg),
+    ?assertEqual(Expect, Res).
+
+dec_packet_in() ->
+    Buffer_id = 0,
+    Reason = 0,
+    Table_id = 0,
+    Cookie = 0,
+    Match = #ofp_match{ fields = [#ofp_field{name = in_port, value = 6},
+                                  #ofp_field{name = eth_dst,
+                                             value = <<0,0,0,0,0,8>>}]},
+    Body = #ofp_packet_in{
+          buffer_id = Buffer_id,
+          reason = Reason,
+          table_id = Table_id,
+          cookie = Cookie,
+          match = Match
+         },
+    ExpMatch = [{in_port,6}, {eth_dst,<<0,0,0,0,0,8>>}],
+    Expect = {packet_in, 2, [{buffer_id, Buffer_id},
+                             {reason, Reason},
+                             {table_id, Table_id},
+                             {cookie, Cookie},
+                             {match, ExpMatch}]},
+
+    Msg = #ofp_message{version = ?V4, xid=2, body = Body},
+    Res = of_msg_lib:decode(Msg),
+    ?assertEqual(Expect, Res).
+
+dec_flow_removed() ->
+    Cookie = <<1,2,3,4,5,6>>,
+    Priority = 2,
+    Reason = delete,
+    Table_id = 3,
+    Duration_sec = 23,
+    Duration_nsec = 456,
+    Idle_timeout = 333,
+    Hard_timeout = 444,
+    Packet_count = 45567,
+    Byte_count = 3456,
+    Match = #ofp_match{ fields = [#ofp_field{name = in_port, value = 6},
+                                  #ofp_field{name = eth_dst,
+                                             value = <<0,0,0,0,0,8>>}]},
+    Body = #ofp_flow_removed{
+          cookie = Cookie,
+          priority = Priority,
+          reason = Reason,
+          table_id = Table_id,
+          duration_sec = Duration_sec,
+          duration_nsec = Duration_nsec,
+          idle_timeout = Idle_timeout,
+          hard_timeout = Hard_timeout,
+          packet_count = Packet_count,
+          byte_count = Byte_count,
+          match = Match
+         },
+    ExpMatch = [{in_port,6}, {eth_dst,<<0,0,0,0,0,8>>}],
+    Expect = {flow_removed, 2, [{cookie, Cookie},
+                                {priority, Priority},
+                                {reason, Reason},
+                                {table_id, Table_id},
+                                {duration_sec, Duration_sec},
+                                {duration_nsec, Duration_nsec},
+                                {idle_timeout, Idle_timeout},
+                                {hard_timeout, Hard_timeout},
+                                {packet_count, Packet_count},
+                                {byte_count, Byte_count},
+                                {match, ExpMatch}]},
+    Msg = #ofp_message{version = ?V4, xid=2, body = Body},
+    Res = of_msg_lib:decode(Msg),
+    ?assertEqual(Expect, Res).
+
+dec_port_status() ->
+    Reason = modify,
+    Flags = [],
+    Port_no = 24,
+    Hw_addr = <<1,2,3,4,5,6>>,
+    Name = <<"Port24">>,
+    Config = [port_down,
+              no_recv,
+              no_fwd,
+              no_packet_in],
+    State = [link_down,
+             blocked,
+             live],
+    Curr = ['100mb_hd'],
+    Advertised = ['100mb_hd'],
+    Supported = ['100mb_hd'],
+    Peer = ['100mb_hd'],
+    Curr_speed = 100,
+    Max_speed = 1000,
+    Desc = #ofp_port{
+              port_no = Port_no,
+              hw_addr = Hw_addr,
+              name = Name,
+              config = Config,
+              state = State,
+              curr = Curr,
+              advertised = Advertised,
+              supported = Supported,
+              peer = Peer,
+              curr_speed = Curr_speed,
+              max_speed = Max_speed
+             },
+    ExpDesc = [{port_no, Port_no},
+                {hw_addr, Hw_addr},
+                {name, Name},
+                {config, Config},
+                {state, State},
+                {curr, Curr},
+                {advertised, Advertised},
+                {supported, Supported},
+                {peer, Peer},
+                {curr_speed, Curr_speed},
+                {max_speed, Max_speed}],
+    Body = #ofp_port_status{
+              reason = Reason,
+              desc = Desc
+         },
+    Expect = {port_status, 2, [{reason, Reason},
+                               {desc, ExpDesc}]},
+    Msg = #ofp_message{version = ?V4, xid=2, body = Body},
+    Res = of_msg_lib:decode(Msg),
+    ?assertEqual(Expect, Res).
+
+dec_error_msg() ->
+    Type = bad_request,
+    Code = bad_multipart,
+    Data = <<1>>,
+    Body = #ofp_error_msg{
+          type = Type,
+          code = Code,
+          data = Data
+             },
+    Expect = {error_msg, 2, [{type, Type},
+                             {code, Code},
+                             {data, Data}]},
+    Msg = #ofp_message{version = ?V4, xid=2, body = Body},
+    Res = of_msg_lib:decode(Msg),
+    ?assertEqual(Expect, Res).
+
+dec_error_msg_experimenter() ->
+    Exp_type = 1,
+    Experimenter = 2,
+    Data = <<1,2,3>>,
+    Body =#ofp_error_msg_experimenter{
+          exp_type = Exp_type,
+          experimenter = Experimenter,
+          data = Data
+            },
+    Expect = {error_msg_experimenter, 2, [{exp_type, Exp_type},
+                                          {experimenter, Experimenter},
+                                          {data, Data}]},
+    Msg = #ofp_message{version = ?V4, xid=2, body = Body},
+    Res = of_msg_lib:decode(Msg),
+    ?assertEqual(Expect, Res).
+
+dec_echo_request() ->
+    Data = <<"Random noise">>,
+    Body = #ofp_echo_request{ data = Data },
+    Expect = {echo_request, 2, [{data, Data}]},
+    Msg = #ofp_message{version = ?V4, xid=2, body = Body},
+    Res = of_msg_lib:decode(Msg),
+    ?assertEqual(Expect, Res).
+
+dec_echo_reply() ->
+    Data = <<"Random noise">>,
+    Body = #ofp_echo_request{ data = Data },
+    Expect = {echo_request, 2, [{data, Data}]},
+    Msg = #ofp_message{version = ?V4, xid=2, body = Body},
+    Res = of_msg_lib:decode(Msg),
+    ?assertEqual(Expect, Res).
+
+dec_experimenter() ->
+    Experimenter = 0,
+    Exp_type = 0,
+    Data = 0,
+    Body = #ofp_experimenter{
+              experimenter = Experimenter,
+              exp_type = Exp_type,
+              data = Data
+             },
+        Expect = {experimenter, 2, [{experimenter, Experimenter},
+                                    {exp_type, Exp_type},
+                                    {data, Data}]},
+    Msg = #ofp_message{version = ?V4, xid=2, body = Body},
+    Res = of_msg_lib:decode(Msg),
+    ?assertEqual(Expect, Res).
 
 %%% ==================================================================
 

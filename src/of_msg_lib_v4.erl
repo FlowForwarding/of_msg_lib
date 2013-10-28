@@ -874,7 +874,7 @@ ipv6_exthdr(Val, Mask) when bit_size(Val) == 9, bit_size(Mask) == 9 ->
                mask = Mask}.
 
 %%=============================================================================
-                                                %& Instructions
+%% Instructions
 mk_instructions(Is) ->
     [mk_instruction(I) || I<-Is].
 
@@ -907,8 +907,8 @@ mk_instruction({experimenter_instr, Exp, Data}) ->
     #ofp_instruction_experimenter{experimenter = Exp,
                                   data = Data}.
 
-%%=============================================================================
-                                                %& Actions
+%%%=============================================================================
+%%% Actions
 
 mk_actions(As) ->
     [mk_action(A) || A<-As].
@@ -920,9 +920,8 @@ mk_action({output, Port, MaxLen}) ->
 mk_action({group, Group}) ->
     #ofp_action_group{group_id = Group};
 
-mk_action({set_queue, Port, Queue}) ->
-    #ofp_action_set_queue{port = Port,
-                          queue_id = Queue};
+mk_action({set_queue, Queue}) ->
+    #ofp_action_set_queue{queue_id = Queue};
 
 mk_action({set_mpls_ttl, TTL}) ->
     #ofp_action_set_mpls_ttl{mpls_ttl = TTL};
@@ -977,7 +976,7 @@ mk_band({dscp_remark,  Rate, BurstSize, PrecLevel}) ->
        burst_size = BurstSize,
        prec_level = PrecLevel};
 
-mk_band({experimenter,  BandType, Rate, BurstSize, ExperimenterId}) ->
+mk_band({experimenter,  _BandType, Rate, BurstSize, ExperimenterId}) ->
     #ofp_meter_band_experimenter{
        type = experimenter,
        rate = Rate,
@@ -995,145 +994,7 @@ mk_bucket({Weight, PortNo, GroupId, Actions}) ->
        actions = mk_actions(Actions)}.
 
 %%%=========================================================================
-
-decode(#ofp_port{
-          port_no = Port_no,
-          hw_addr = Hw_addr,
-          name = Name,
-          config = Config,
-          state = State,
-          curr = Curr,
-          advertised = Advertised,
-          supported = Supported,
-          peer = Peer,
-          curr_speed = Curr_speed,
-          max_speed = Max_speed
-         }) ->
-    [{port_no, Port_no},
-     {hw_addr, Hw_addr},
-     {name, Name},
-     {config, Config},
-     {state, State},
-     {curr, Curr},
-     {advertised, Advertised},
-     {supported, Supported},
-     {peer, Peer},
-     {curr_speed, Curr_speed},
-     {max_speed, Max_speed}];
-
-decode(#ofp_queue_prop_min_rate{ rate = Rate }) ->
-    [{rate, Rate}];
-
-decode(#ofp_queue_prop_max_rate{ rate = Rate }) ->
-    [{rate, Rate}];
-
-decode(#ofp_queue_prop_experimenter{ experimenter = Experimenter, data = Data }) ->
-    [{experimenter, Experimenter},
-     {data, Data}];
-
-decode(#ofp_packet_queue{
-          queue_id = Queue_id,
-          port_no = Port_no,
-          properties = Properties
-         }) ->
-    [{queue_id, Queue_id},
-     {port_no, Port_no},
-     {properties, Properties}];
-
-decode(#ofp_match{ fields = Fields }) ->
-    [decode(F) || F <- Fields];
-
-decode(#ofp_field{
-          class = openflow_basic,
-          name = Name,
-          has_mask = false,
-          value = Value
-         }) ->
-    [{Name, Value}];
-
-decode(#ofp_field{
-          class = openflow_basic,
-          name = Name,
-          has_mask = true,
-          value = Value,
-          mask = Mask
-         }) ->
-    [{Name, Value, Mask}];
-
-decode(#ofp_instruction_meter{ meter_id = Meter_id }) ->
-    [{meter_id, Meter_id}];
-
-decode(#ofp_instruction_apply_actions{ actions = Actions }) ->
-    {apply_actions, decode_actions(Actions)};
-
-decode(#ofp_instruction_clear_actions{}) ->
-    clear_actions;
-
-decode(#ofp_instruction_write_actions{ actions = Actions }) ->
-    [{write_actions, decode_actions(Actions)}];
-
-decode(#ofp_instruction_write_metadata{
-          metadata = Metadata,
-          metadata_mask = Metadata_mask
-         }) ->
-    {write_metadata, Metadata, Metadata_mask};
-
-decode(#ofp_instruction_goto_table{ table_id = Table_id }) ->
-    {goto_table, Table_id};
-
-decode(#ofp_instruction_experimenter{ experimenter = Experimenter, data = Data }) ->
-    {experimenter_instr, Experimenter, Data};
-
-decode(#ofp_action_copy_ttl_in{}) ->
-    copy_ttl_in;
-
-decode(#ofp_action_pop_mpls{ ethertype = Ethertype }) ->
-    {pop_mpls, Ethertype};
-
-decode(#ofp_action_pop_pbb{}) ->
-    pop_pbb;
-
-decode(#ofp_action_pop_vlan{}) ->
-    pop_vlan;
-
-decode(#ofp_action_push_mpls{ ethertype = Ethertype }) ->
-    {push_mpls, Ethertype};
-
-decode(#ofp_action_push_pbb{ ethertype = Ethertype }) ->
-    {push_pbb, Ethertype};
-
-decode(#ofp_action_push_vlan{ ethertype = Ethertype }) ->
-    {push_vlan, Ethertype};
-
-decode(#ofp_action_copy_ttl_out{}) ->
-    copy_ttl_out;
-
-decode(#ofp_action_dec_mpls_ttl{}) ->
-    dec_mpls_ttl;
-
-decode(#ofp_action_dec_nw_ttl{}) ->
-    dec_nw_ttl;
-
-decode(#ofp_action_set_mpls_ttl{ mpls_ttl = Mpls_ttl }) ->
-    {set_mpls_ttl, Mpls_ttl};
-
-decode(#ofp_action_set_nw_ttl{ nw_ttl = Nw_ttl }) ->
-    {set_nw_ttl, Nw_ttl};
-
-decode(#ofp_action_set_field{ field = Field }) ->
-    {set_field, Field};
-
-decode(#ofp_action_set_queue{ port = Port, queue_id = Queue_id }) ->
-    {set_queue, Port, Queue_id};
-
-decode(#ofp_action_group{ group_id = Group_id }) ->
-    {group_id, Group_id};
-
-decode(#ofp_action_output{ port = Port, max_len = Max_len }) ->
-    {output, Port, Max_len};
-
-decode(#ofp_action_experimenter{ experimenter = Experimenter, data = Data }) ->
-    {experimenter, Experimenter, Data};
+%%% Decode Normal Replies
 
 decode(#ofp_features_reply{
           datapath_mac = Datapath_mac,
@@ -1143,58 +1004,19 @@ decode(#ofp_features_reply{
           auxiliary_id = Auxiliary_id,
           capabilities = Capabilities
          }) ->
-    [{datapath_mac, Datapath_mac},
-     {datapath_id, Datapath_id},
-     {n_buffers, N_buffers},
-     {n_tables, N_tables},
-     {auxiliary_id, Auxiliary_id},
-     {capabilities, Capabilities}];
+    {features_reply, [{datapath_mac, Datapath_mac},
+                      {datapath_id, Datapath_id},
+                      {n_buffers, N_buffers},
+                      {n_tables, N_tables},
+                      {auxiliary_id, Auxiliary_id},
+                      {capabilities, Capabilities}]};
 
-decode(#ofp_get_config_reply{ flags = Flags, miss_send_len = Miss_send_len }) ->
-    [{flags, Flags},
-     {miss_send_len, Miss_send_len}];
-
-decode(#ofp_bucket{
-          weight = Weight,
-          watch_port = Watch_port,
-          watch_group = Watch_group,
-          actions = Actions
+decode(#ofp_get_config_reply{
+          flags = Flags,
+          miss_send_len = Miss_send_len
          }) ->
-    [{weight, Weight},
-     {watch_port, Watch_port},
-     {watch_group, Watch_group},
-     {actions, Actions}];
-
-decode(#ofp_meter_band_drop{
-          type = Type,
-          rate = Rate,
-          burst_size = Burst_size
-         }) ->
-    [{type, Type},
-     {rate, Rate},
-     {burst_size, Burst_size}];
-
-decode(#ofp_meter_band_dscp_remark{
-          type = Type,
-          rate = Rate,
-          burst_size = Burst_size,
-          prec_level = Prec_level
-         }) ->
-    [{type, Type},
-     {rate, Rate},
-     {burst_size, Burst_size},
-     {prec_level, Prec_level}];
-
-decode(#ofp_meter_band_experimenter{
-          type = Type,
-          rate = Rate,
-          burst_size = Burst_size,
-          experimenter = Experimenter
-         }) ->
-    [{type, Type},
-     {rate, Rate},
-     {burst_size, Burst_size},
-     {experimenter, Experimenter}];
+    {config_reply, [{flags, Flags},
+                    {miss_send_len, Miss_send_len}]};
 
 decode(#ofp_desc_reply{
           flags = Flags,
@@ -1204,43 +1026,12 @@ decode(#ofp_desc_reply{
           serial_num = Serial_num,
           dp_desc = Dp_desc
          }) ->
-    [{flags, Flags},
-     {mfr_desc, Mfr_desc},
-     {hw_desc, Hw_desc},
-     {sw_desc, Sw_desc},
-     {serial_num, Serial_num},
-     {dp_desc, Dp_desc}];
-
-decode(#ofp_flow_stats{
-          table_id = Table_id,
-          duration_sec = Duration_sec,
-          duration_nsec = Duration_nsec,
-          priority = Priority,
-          idle_timeout = Idle_timeout,
-          hard_timeout = Hard_timeout,
-          flags = Flags,
-          cookie = Cookie,
-          packet_count = Packet_count,
-          byte_count = Byte_count,
-          match = Match,
-          instructions = Instructions
-         }) ->
-    [{table_id, Table_id},
-     {duration_sec, Duration_sec},
-     {duration_nsec, Duration_nsec},
-     {priority, Priority},
-     {idle_timeout, Idle_timeout},
-     {hard_timeout, Hard_timeout},
-     {flags, Flags},
-     {cookie, Cookie},
-     {packet_count, Packet_count},
-     {byte_count, Byte_count},
-     {match, decode_match(Match)},
-     {instructions, decode_instructions(Instructions)}];
-
-decode(#ofp_flow_stats_reply{ flags = Flags, body = Body }) ->
-    [{flags, Flags},
-     {body, [decode(S) || S <- Body]}];
+    {desc_reply, [{flags, Flags},
+                  {mfr_desc, Mfr_desc},
+                  {hw_desc, Hw_desc},
+                  {sw_desc, Sw_desc},
+                  {serial_num, Serial_num},
+                  {dp_desc, Dp_desc}]};
 
 decode(#ofp_aggregate_stats_reply{
           flags = Flags,
@@ -1248,257 +1039,24 @@ decode(#ofp_aggregate_stats_reply{
           byte_count = Byte_count,
           flow_count = Flow_count
          }) ->
-    [{flags, Flags},
-     {packet_count, Packet_count},
-     {byte_count, Byte_count},
-     {flow_count, Flow_count}];
+    {aggregate_stats_reply, [{flags, Flags},
+                             {packet_count, Packet_count},
+                             {byte_count, Byte_count},
+                             {flow_count, Flow_count}]};
 
-decode(#ofp_table_stats{
-          table_id = Table_id,
-          active_count = Active_count,
-          lookup_count = Lookup_count,
-          matched_count = Matched_count
-         }) ->
-    [{table_id, Table_id},
-     {active_count, Active_count},
-     {lookup_count, Lookup_count},
-     {matched_count, Matched_count}];
-
-decode(#ofp_table_stats_reply{ flags = Flags, body = Body }) ->
-    [{flags, Flags},
-     {body, [decode(S) || S <- Body]}];
-
-decode(#ofp_table_feature_prop_instructions{ instruction_ids = Instruction_ids }) ->
-    [{instruction_ids, Instruction_ids}];
-
-decode(#ofp_table_feature_prop_instructions_miss{ instruction_ids = Instruction_ids }) ->
-    [{instruction_ids, Instruction_ids}];
-
-decode(#ofp_table_feature_prop_next_tables{ next_table_ids = Next_table_ids }) ->
-    [{next_table_ids, Next_table_ids}];
-
-decode(#ofp_table_feature_prop_next_tables_miss{ next_table_ids = Next_table_ids }) ->
-    [{next_table_ids, Next_table_ids}];
-
-decode(#ofp_table_feature_prop_write_actions{ action_ids = Action_ids }) ->
-    Action_ids;
-
-decode(#ofp_table_feature_prop_write_actions_miss{ action_ids = Action_ids }) ->
-    [{action_ids, Action_ids}];
-
-decode(#ofp_table_feature_prop_apply_actions{ action_ids = Action_ids }) ->
-    [{action_ids, Action_ids}];
-
-decode(#ofp_table_feature_prop_apply_actions_miss{ action_ids = Action_ids }) ->
-    [{action_ids, Action_ids}];
-
-decode(#ofp_table_feature_prop_match{ oxm_ids = Oxm_ids }) ->
-    [{oxm_ids, Oxm_ids}];
-
-decode(#ofp_table_feature_prop_wildcards{ oxm_ids = Oxm_ids }) ->
-    [{oxm_ids, Oxm_ids}];
-
-decode(#ofp_table_feature_prop_write_setfield{ oxm_ids = Oxm_ids }) ->
-    [{oxm_ids, Oxm_ids}];
-
-decode(#ofp_table_feature_prop_write_setfield_miss{ oxm_ids = Oxm_ids }) ->
-    [{oxm_ids, Oxm_ids}];
-
-decode(#ofp_table_feature_prop_apply_setfield{ oxm_ids = Oxm_ids }) ->
-    [{oxm_ids, Oxm_ids}];
-
-decode(#ofp_table_feature_prop_apply_setfield_miss{ oxm_ids = Oxm_ids }) ->
-    [{oxm_ids, Oxm_ids}];
-
-decode(#ofp_table_feature_prop_experimenter{
-          experimenter = Experimenter,
-          exp_type = Exp_type,
-          data = Data
-         }) ->
-    [{experimenter, Experimenter},
-     {exp_type, Exp_type},
-     {data, Data}];
-
-decode(#ofp_table_feature_prop_experimenter_miss{
-          experimenter = Experimenter,
-          exp_type = Exp_type,
-          data = Data
-         }) ->
-    [{experimenter, Experimenter},
-     {exp_type, Exp_type},
-     {data, Data}];
-
-decode(#ofp_table_features{
-          table_id = Table_id,
-          name = Name,
-          metadata_match = Metadata_match,
-          metadata_write = Metadata_write,
-          max_entries = Max_entries,
-          properties = Properties
-         }) ->
-    [{table_id, Table_id},
-     {name, Name},
-     {metadata_match, Metadata_match},
-     {metadata_write, Metadata_write},
-     {max_entries, Max_entries},
-     {properties, Properties}];
-
-decode(#ofp_table_features_reply{ flags = Flags, body = Body }) ->
-    [{flags, Flags},
-     {body, Body}];
-
-decode(#ofp_port_stats{
-          port_no = Port_no,
-          rx_packets = Rx_packets,
-          tx_packets = Tx_packets,
-          rx_bytes = Rx_bytes,
-          tx_bytes = Tx_bytes,
-          rx_dropped = Rx_dropped,
-          tx_dropped = Tx_dropped,
-          rx_errors = Rx_errors,
-          tx_errors = Tx_errors,
-          rx_frame_err = Rx_frame_err,
-          rx_over_err = Rx_over_err,
-          rx_crc_err = Rx_crc_err,
-          collisions = Collisions,
-          duration_sec = Duration_sec,
-          duration_nsec = Duration_nsec
-         }) ->
-    [{port_no, Port_no},
-     {rx_packets, Rx_packets},
-     {tx_packets, Tx_packets},
-     {rx_bytes, Rx_bytes},
-     {tx_bytes, Tx_bytes},
-     {rx_dropped, Rx_dropped},
-     {tx_dropped, Tx_dropped},
-     {rx_errors, Rx_errors},
-     {tx_errors, Tx_errors},
-     {rx_frame_err, Rx_frame_err},
-     {rx_over_err, Rx_over_err},
-     {rx_crc_err, Rx_crc_err},
-     {collisions, Collisions},
-     {duration_sec, Duration_sec},
-     {duration_nsec, Duration_nsec}];
-
-decode(#ofp_port_stats_reply{ flags = Flags, body = Body }) ->
-    [{flags, Flags},
-     {body, Body}];
-
-decode(#ofp_port_desc_reply{ flags = Flags, body = Body }) ->
-    [{flags, Flags},
-     {body, Body}];
-
-decode(#ofp_queue_stats{
-          port_no = Port_no,
-          queue_id = Queue_id,
-          tx_bytes = Tx_bytes,
-          tx_packets = Tx_packets,
-          tx_errors = Tx_errors,
-          duration_sec = Duration_sec,
-          duration_nsec = Duration_nsec
-         }) ->
-    [{port_no, Port_no},
-     {queue_id, Queue_id},
-     {tx_bytes, Tx_bytes},
-     {tx_packets, Tx_packets},
-     {tx_errors, Tx_errors},
-     {duration_sec, Duration_sec},
-     {duration_nsec, Duration_nsec}];
-
-decode(#ofp_queue_stats_reply{ flags = Flags, body = Body }) ->
-    [{flags, Flags},
-     {body, Body}];
-
-decode(#ofp_bucket_counter{ packet_count = Packet_count, byte_count = Byte_count }) ->
-    [{packet_count, Packet_count},
-     {byte_count, Byte_count}];
-
-decode(#ofp_group_stats{
-          group_id = Group_id,
-          ref_count = Ref_count,
-          packet_count = Packet_count,
-          byte_count = Byte_count,
-          duration_sec = Duration_sec,
-          duration_nsec = Duration_nsec,
-          bucket_stats = Bucket_stats
-         }) ->
-    [{group_id, Group_id},
-     {ref_count, Ref_count},
-     {packet_count, Packet_count},
-     {byte_count, Byte_count},
-     {duration_sec, Duration_sec},
-     {duration_nsec, Duration_nsec},
-     {bucket_stats, Bucket_stats}];
-
-decode(#ofp_group_stats_reply{ flags = Flags, body = Body }) ->
-    [{flags, Flags},
-     {body, Body}];
-
-decode(#ofp_group_desc_stats{
-          type = Type,
-          group_id = Group_id,
-          buckets = Buckets
-         }) ->
-    [{type, Type},
-     {group_id, Group_id},
-     {buckets, [decode(Bucket) || Bucket <- Buckets]}];
-
-decode(#ofp_group_desc_reply{ flags = Flags, body = Body }) ->
-    [{flags, Flags},
-     {body, Body}];
 
 decode(#ofp_group_features_reply{
           flags = Flags,
           types = Types,
           capabilities = Capabilities,
-          max_groups = Max_groups
+          max_groups = Max_groups,
+          actions = Actions
          }) ->
-    [{flags, Flags},
-     {types, Types},
-     {capabilities, Capabilities},
-     {max_groups, Max_groups}];
-
-decode(#ofp_meter_band_stats{
-          packet_band_count = Packet_band_count,
-          byte_band_count = Byte_band_count
-         }) ->
-    [{packet_band_count, Packet_band_count},
-     {byte_band_count, Byte_band_count}];
-
-decode(#ofp_meter_stats{
-          meter_id = Meter_id,
-          flow_count = Flow_count,
-          packet_in_count = Packet_in_count,
-          byte_in_count = Byte_in_count,
-          duration_sec = Duration_sec,
-          duration_nsec = Duration_nsec,
-          band_stats = Band_stats
-         }) ->
-    [{meter_id, Meter_id},
-     {flow_count, Flow_count},
-     {packet_in_count, Packet_in_count},
-     {byte_in_count, Byte_in_count},
-     {duration_sec, Duration_sec},
-     {duration_nsec, Duration_nsec},
-     {band_stats, Band_stats}];
-
-decode(#ofp_meter_stats_reply{ flags = Flags, body = Body
-         }) ->
-    [{flags, Flags},
-     {body, Body}];
-
-decode(#ofp_meter_config{
-          flags = Flags,
-          meter_id = Meter_id,
-          bands = Bands
-         }) ->
-    [{flags, Flags},
-     {meter_id, Meter_id},
-     {bands, Bands}];
-
-decode(#ofp_meter_config_reply{ flags = Flags, body = Body }) ->
-    [{flags, Flags},
-     {body, Body}];
+    {group_features_reply, [{flags, Flags},
+                            {types, Types},
+                            {capabilities, Capabilities},
+                            {max_groups, Max_groups},
+                            {actions, Actions}]};
 
 decode(#ofp_meter_features_reply{
           flags = Flags,
@@ -1508,12 +1066,12 @@ decode(#ofp_meter_features_reply{
           max_bands = Max_bands,
           max_color = Max_color
          }) ->
-    [{flags, Flags},
-     {max_meter, Max_meter},
-     {band_types, Band_types},
-     {capabilities, Capabilities},
-     {max_bands, Max_bands},
-     {max_color, Max_color}];
+    {meter_features_reply, [{flags, Flags},
+                            {max_meter, Max_meter},
+                            {band_types, Band_types},
+                            {capabilities, Capabilities},
+                            {max_bands, Max_bands},
+                            {max_color, Max_color}]};
 
 decode(#ofp_experimenter_reply{
           flags = Flags,
@@ -1521,37 +1079,81 @@ decode(#ofp_experimenter_reply{
           exp_type = Exp_type,
           data = Data
          }) ->
-    [{flags, Flags},
-     {experimenter, Experimenter},
-     {exp_type, Exp_type},
-     {data, Data}];
+    {experimenter_reply, [{flags, Flags},
+                          {experimenter, Experimenter},
+                          {exp_type, Exp_type},
+                          {data, Data}]};
 
 decode(#ofp_queue_get_config_reply{
           port = Port,
           queues = Queues
          }) ->
-    [{port, Port},
-     {queues, Queues}];
+    {queue_get_config_reply, [{port, Port},
+                              {queues, dec_packet_queues(Queues)}]};
 
 decode(#ofp_barrier_reply{}) ->
-    [];
+    {barrier_reply, []};
 
 decode(#ofp_role_reply{
           role = Role,
           generation_id = Generation_id
          }) ->
-    [{role, Role},
-     {generation_id, Generation_id}];
+    {role_reply, [{role, Role},
+                  {generation_id, Generation_id}]};
 
 decode(#ofp_get_async_reply{
           packet_in_mask = Packet_in_mask,
           port_status_mask = Port_status_mask,
           flow_removed_mask = Flow_removed_mask
          }) ->
-    [{packet_in_mask, Packet_in_mask},
-     {port_status_mask, Port_status_mask},
-     {flow_removed_mask, Flow_removed_mask}];
+    {get_async_reply, [{packet_in_mask, Packet_in_mask},
+                       {port_status_mask, Port_status_mask},
+                       {flow_removed_mask, Flow_removed_mask}]};
 
+%%% ===========================================================================
+%%% Decode Multipart Replies
+decode(#ofp_flow_stats_reply{ flags = Flags, body = Body }) ->
+    {flow_stats_reply, [{flags, Flags},
+                        {flows, [dec_flow_stats(S) || S <- Body]}]};
+
+decode(#ofp_table_stats_reply{ flags = Flags, body = Body }) ->
+    {table_stats_reply, [{flags, Flags},
+                         {tables, [dec_table_stats(S) || S <- Body]}]};
+
+decode(#ofp_table_features_reply{ flags = Flags, body = Tables }) ->
+    {table_features_reply, [{flags, Flags},
+                            {tables, [dec_table_features(Table) || Table <- Tables]}]};
+
+decode(#ofp_port_stats_reply{ flags = Flags, body = Ports }) ->
+    {port_stats_reply, [{flags, Flags},
+                        {ports, [dec_port_stats(Port)|| Port <- Ports]}]};
+
+decode(#ofp_port_desc_reply{ flags = Flags, body = Ports }) ->
+    {port_desc_reply, [{flags, Flags},
+                       {ports, [dec_port(Port)|| Port <- Ports]}]};
+
+decode(#ofp_queue_stats_reply{ flags = Flags, body = Queues }) ->
+    {queue_stats_reply, [{flags, Flags},
+                         {queues, [dec_queue_stats(Queue) || Queue <- Queues]}]};
+
+decode(#ofp_group_stats_reply{ flags = Flags, body = Groups }) ->
+    {group_stats_reply, [{flags, Flags},
+                         {groups, [dec_group_stats(Group) || Group <- Groups]}]};
+
+decode(#ofp_group_desc_reply{ flags = Flags, body = Groups }) ->
+    {group_desc_reply, [{flags, Flags},
+                        {groups, [dec_group_desc(Group) || Group <- Groups]}]};
+
+decode(#ofp_meter_stats_reply{ flags = Flags, body = Meters}) ->
+    {meter_stats_reply, [{flags, Flags},
+                         {meters, [dec_meter_stats(Meter) || Meter <- Meters]}]};
+
+decode(#ofp_meter_config_reply{ flags = Flags, body = Meters }) ->
+    {meter_config_reply, [{flags, Flags},
+                          {meters, [dec_meter_config(Meter) || Meter <- Meters]}]};
+
+%%% ===========================================================================
+%%% Decode Async Messages
 decode(#ofp_packet_in{
           buffer_id = Buffer_id,
           reason = Reason,
@@ -1559,11 +1161,11 @@ decode(#ofp_packet_in{
           cookie = Cookie,
           match = Match
          }) ->
-    [{buffer_id, Buffer_id},
-     {reason, Reason},
-     {table_id, Table_id},
-     {cookie, Cookie},
-     {match, decode_match(Match)}];
+    {packet_in, [{buffer_id, Buffer_id},
+                 {reason, Reason},
+                 {table_id, Table_id},
+                 {cookie, Cookie},
+                 {match, dec_match(Match)}]};
 
 decode(#ofp_flow_removed{
           cookie = Cookie,
@@ -1578,68 +1180,479 @@ decode(#ofp_flow_removed{
           byte_count = Byte_count,
           match = Match
          }) ->
-    [{cookie, Cookie},
-     {priority, Priority},
-     {reason, Reason},
-     {table_id, Table_id},
-     {duration_sec, Duration_sec},
-     {duration_nsec, Duration_nsec},
-     {idle_timeout, Idle_timeout},
-     {hard_timeout, Hard_timeout},
-     {packet_count, Packet_count},
-     {byte_count, Byte_count},
-     {match, decode_match(Match)}];
+    {flow_removed, [{cookie, Cookie},
+                    {priority, Priority},
+                    {reason, Reason},
+                    {table_id, Table_id},
+                    {duration_sec, Duration_sec},
+                    {duration_nsec, Duration_nsec},
+                    {idle_timeout, Idle_timeout},
+                    {hard_timeout, Hard_timeout},
+                    {packet_count, Packet_count},
+                    {byte_count, Byte_count},
+                    {match, dec_match(Match)}]};
 
 decode(#ofp_port_status{
           reason = Reason,
           desc = Desc
          }) ->
-    [{reason, Reason},
-     {desc, Desc}];
+    {port_status, [{reason, Reason},
+                   {desc, dec_port(Desc)}]};
 
 decode(#ofp_error_msg{
           type = Type,
           code = Code,
           data = Data
          }) ->
-    [{type, Type},
-     {code, Code},
-     {data, Data}];
+    {error_msg, [{type, Type},
+                 {code, Code},
+                 {data, Data}]};
 
 decode(#ofp_error_msg_experimenter{
           exp_type = Exp_type,
           experimenter = Experimenter,
           data = Data
          }) ->
-    [{exp_type, Exp_type},
-     {experimenter, Experimenter},
-     {data, Data}];
+    {error_msg_experimenter, [{exp_type, Exp_type},
+                              {experimenter, Experimenter},
+                              {data, Data}]};
 
 decode(#ofp_echo_request{ data = Data }) ->
-    [{data, Data}];
+    {echo_request, [{data, Data}]};
 
 decode(#ofp_echo_reply{ data = Data }) ->
-    [{data, Data}];
+    {echo_reply, [{data, Data}]};
 
 decode(#ofp_experimenter{
           experimenter = Experimenter,
           exp_type = Exp_type,
           data = Data
          }) ->
+    {experimenter, [{experimenter, Experimenter},
+                    {exp_type, Exp_type},
+                    {data, Data}]}.
+
+%%% ===========================================================================
+dec_packet_queues(Queues) ->
+    [dec_packet_queue(Queue) || Queue <- Queues].
+
+dec_packet_queue(#ofp_packet_queue{
+                    queue_id = Queue_id,
+                    port_no = Port_no,
+                    properties = Properties
+                   }) ->
+    [{queue_id, Queue_id},
+     {port_no, Port_no},
+     {properties, dec_queue_props(Properties)}].
+
+dec_queue_props(Properties) ->
+    [dec_queue_prop(Property) || Property <- Properties].
+
+dec_queue_prop(#ofp_queue_prop_min_rate{ rate = Rate }) ->
+    {min_rate, Rate};
+
+dec_queue_prop(#ofp_queue_prop_max_rate{ rate = Rate }) ->
+    {max_rate, Rate};
+
+dec_queue_prop(#ofp_queue_prop_experimenter{ experimenter = Experimenter, data = Data }) ->
+    {experimenter, Experimenter, Data}.
+
+dec_bucket(#ofp_bucket{
+              weight = Weight,
+              watch_port = Watch_port,
+              watch_group = Watch_group,
+              actions = Actions
+             }) ->
+    [{weight, Weight},
+     {watch_port, Watch_port},
+     {watch_group, Watch_group},
+     {actions, dec_actions(Actions)}].
+
+dec_meter_bands(Bands) ->
+    [dec_meter_band(Band) || Band <- Bands].
+
+dec_meter_band(#ofp_meter_band_drop{
+                  type = Type,
+                  rate = Rate,
+                  burst_size = Burst_size
+                 }) ->
+    [{type, Type},
+     {rate, Rate},
+     {burst_size, Burst_size}];
+
+dec_meter_band(#ofp_meter_band_dscp_remark{
+                  type = Type,
+                  rate = Rate,
+                  burst_size = Burst_size,
+                  prec_level = Prec_level
+                 }) ->
+    [{type, Type},
+     {rate, Rate},
+     {burst_size, Burst_size},
+     {prec_level, Prec_level}];
+
+dec_meter_band(#ofp_meter_band_experimenter{
+                  type = Type,
+                  rate = Rate,
+                  burst_size = Burst_size,
+                  experimenter = Experimenter
+                 }) ->
+    [{type, Type},
+     {rate, Rate},
+     {burst_size, Burst_size},
+     {experimenter, Experimenter}].
+
+dec_bucket_counters(Buckets) ->
+    [dec_bucket_counter(Bucket) || Bucket <- Buckets].
+
+dec_bucket_counter(#ofp_bucket_counter{ packet_count = Packet_count, byte_count = Byte_count }) ->
+    [{packet_count, Packet_count},
+     {byte_count, Byte_count}].
+
+dec_meter_band_stats(Stats) ->
+    [dec_meter_band_stat(Stat) || Stat <- Stats].
+
+dec_meter_band_stat(#ofp_meter_band_stats{
+                        packet_band_count = Packet_band_count,
+                        byte_band_count = Byte_band_count
+                       }) ->
+    [{packet_band_count, Packet_band_count},
+     {byte_band_count, Byte_band_count}].
+
+
+
+%%% ===========================================================================
+dec_actions(Actions) ->
+    [dec_action(A) || A <- Actions].
+
+dec_action(#ofp_action_copy_ttl_in{}) ->
+    copy_ttl_in;
+
+dec_action(#ofp_action_pop_mpls{ ethertype = Ethertype }) ->
+    {pop_mpls, Ethertype};
+
+dec_action(#ofp_action_pop_pbb{}) ->
+    pop_pbb;
+
+dec_action(#ofp_action_pop_vlan{}) ->
+    pop_vlan;
+
+dec_action(#ofp_action_push_mpls{ ethertype = Ethertype }) ->
+    {push_mpls, Ethertype};
+
+dec_action(#ofp_action_push_pbb{ ethertype = Ethertype }) ->
+    {push_pbb, Ethertype};
+
+dec_action(#ofp_action_push_vlan{ ethertype = Ethertype }) ->
+    {push_vlan, Ethertype};
+
+dec_action(#ofp_action_copy_ttl_out{}) ->
+    copy_ttl_out;
+
+dec_action(#ofp_action_dec_mpls_ttl{}) ->
+    dec_mpls_ttl;
+
+dec_action(#ofp_action_dec_nw_ttl{}) ->
+    dec_nw_ttl;
+
+dec_action(#ofp_action_set_mpls_ttl{ mpls_ttl = Mpls_ttl }) ->
+    {set_mpls_ttl, Mpls_ttl};
+
+dec_action(#ofp_action_set_nw_ttl{ nw_ttl = Nw_ttl }) ->
+    {set_nw_ttl, Nw_ttl};
+
+dec_action(#ofp_action_set_field{ field = Field }) ->
+    {set_field, Field};
+
+dec_action(#ofp_action_set_queue{ queue_id = Queue_id }) ->
+    {set_queue, Queue_id};
+
+dec_action(#ofp_action_group{ group_id = Group_id }) ->
+    {group_id, Group_id};
+
+dec_action(#ofp_action_output{ port = Port, max_len = Max_len }) ->
+    {output, Port, Max_len};
+
+dec_action(#ofp_action_experimenter{ experimenter = Experimenter, data = Data }) ->
+    {experimenter, Experimenter, Data}.
+
+%%% ===========================================================================
+dec_instructions(Is) ->
+    [dec_instruction(I) || I <- Is].
+
+dec_instruction(#ofp_instruction_meter{ meter_id = Meter_id }) ->
+    [{meter_id, Meter_id}];
+
+dec_instruction(#ofp_instruction_apply_actions{ actions = Actions }) ->
+    {apply_actions, dec_actions(Actions)};
+
+dec_instruction(#ofp_instruction_clear_actions{}) ->
+    clear_actions;
+
+dec_instruction(#ofp_instruction_write_actions{ actions = Actions }) ->
+    {write_actions, dec_actions(Actions)};
+
+dec_instruction(#ofp_instruction_write_metadata{
+                   metadata = Metadata,
+                   metadata_mask = Metadata_mask
+                  }) ->
+    {write_metadata, Metadata, Metadata_mask};
+
+dec_instruction(#ofp_instruction_goto_table{ table_id = Table_id }) ->
+    {goto_table, Table_id};
+
+dec_instruction(#ofp_instruction_experimenter{ experimenter = Experimenter, data = Data }) ->
+    {experimenter_instr, Experimenter, Data}.
+
+%%% ================================================================================
+dec_match(#ofp_match{ fields = Fields }) ->
+    [dec_field(F) || F <- Fields].
+
+dec_field(#ofp_field{ name = Name, value = Val, has_mask = true, mask = Mask }) ->
+    {Name, Val, Mask};
+dec_field(#ofp_field{ name = Name, value = Val, has_mask = false }) ->
+    {Name, Val}.
+
+%%% ================================================================================
+dec_flow_stats(#ofp_flow_stats{
+                  table_id = Table_id,
+                  duration_sec = Duration_sec,
+                  duration_nsec = Duration_nsec,
+                  priority = Priority,
+                  idle_timeout = Idle_timeout,
+                  hard_timeout = Hard_timeout,
+                  flags = Flags,
+                  cookie = Cookie,
+                  packet_count = Packet_count,
+                  byte_count = Byte_count,
+                  match = Match,
+                  instructions = Instructions
+                 }) ->
+    [{table_id, Table_id},
+     {duration_sec, Duration_sec},
+     {duration_nsec, Duration_nsec},
+     {priority, Priority},
+     {idle_timeout, Idle_timeout},
+     {hard_timeout, Hard_timeout},
+     {flags, Flags},
+     {cookie, Cookie},
+     {packet_count, Packet_count},
+     {byte_count, Byte_count},
+     {match, dec_match(Match)},
+     {instructions, dec_instructions(Instructions)}].
+
+dec_table_stats(#ofp_table_stats{
+                   table_id = Table_id,
+                   active_count = Active_count,
+                   lookup_count = Lookup_count,
+                   matched_count = Matched_count
+                  }) ->
+    [{table_id, Table_id},
+     {active_count, Active_count},
+     {lookup_count, Lookup_count},
+     {matched_count, Matched_count}].
+
+%%% ==========================================================================
+%%% Table Features
+dec_table_features(#ofp_table_features{
+                      table_id = Table_id,
+                      name = Name,
+                      metadata_match = Metadata_match,
+                      metadata_write = Metadata_write,
+                      max_entries = Max_entries,
+                      properties = Properties
+                     }) ->
+    [{table_id, Table_id},
+     {name, Name},
+     {metadata_match, Metadata_match},
+     {metadata_write, Metadata_write},
+     {max_entries, Max_entries},
+     {properties, [dec_table_feature_prop(Prop) || Prop <- Properties]}].
+
+dec_table_feature_prop(#ofp_table_feature_prop_instructions{ instruction_ids = Instruction_ids }) ->
+    [{instruction_ids, Instruction_ids}];
+
+dec_table_feature_prop(#ofp_table_feature_prop_instructions_miss{ instruction_ids = Instruction_ids }) ->
+    [{instruction_ids, Instruction_ids}];
+
+dec_table_feature_prop(#ofp_table_feature_prop_next_tables{ next_table_ids = Next_table_ids }) ->
+    [{next_table_ids, Next_table_ids}];
+
+dec_table_feature_prop(#ofp_table_feature_prop_next_tables_miss{ next_table_ids = Next_table_ids }) ->
+    [{next_table_ids, Next_table_ids}];
+
+dec_table_feature_prop(#ofp_table_feature_prop_write_actions{ action_ids = Action_ids }) ->
+    Action_ids;
+
+dec_table_feature_prop(#ofp_table_feature_prop_write_actions_miss{ action_ids = Action_ids }) ->
+    [{action_ids, Action_ids}];
+
+dec_table_feature_prop(#ofp_table_feature_prop_apply_actions{ action_ids = Action_ids }) ->
+    [{action_ids, Action_ids}];
+
+dec_table_feature_prop(#ofp_table_feature_prop_apply_actions_miss{ action_ids = Action_ids }) ->
+    [{action_ids, Action_ids}];
+
+dec_table_feature_prop(#ofp_table_feature_prop_match{ oxm_ids = Oxm_ids }) ->
+    [{oxm_ids, Oxm_ids}];
+
+dec_table_feature_prop(#ofp_table_feature_prop_wildcards{ oxm_ids = Oxm_ids }) ->
+    [{oxm_ids, Oxm_ids}];
+
+dec_table_feature_prop(#ofp_table_feature_prop_write_setfield{ oxm_ids = Oxm_ids }) ->
+    [{oxm_ids, Oxm_ids}];
+
+dec_table_feature_prop(#ofp_table_feature_prop_write_setfield_miss{ oxm_ids = Oxm_ids }) ->
+    [{oxm_ids, Oxm_ids}];
+
+dec_table_feature_prop(#ofp_table_feature_prop_apply_setfield{ oxm_ids = Oxm_ids }) ->
+    [{oxm_ids, Oxm_ids}];
+
+dec_table_feature_prop(#ofp_table_feature_prop_apply_setfield_miss{ oxm_ids = Oxm_ids }) ->
+    [{oxm_ids, Oxm_ids}];
+
+dec_table_feature_prop(#ofp_table_feature_prop_experimenter{
+                          experimenter = Experimenter,
+                          exp_type = Exp_type,
+                          data = Data
+                         }) ->
+    [{experimenter, Experimenter},
+     {exp_type, Exp_type},
+     {data, Data}];
+
+dec_table_feature_prop(#ofp_table_feature_prop_experimenter_miss{
+                          experimenter = Experimenter,
+                          exp_type = Exp_type,
+                          data = Data
+                         }) ->
     [{experimenter, Experimenter},
      {exp_type, Exp_type},
      {data, Data}].
 
-decode_actions(Actions) ->
-    [decode(A) || A <- Actions].
+%%% ==========================================================================
+dec_port_stats(#ofp_port_stats{
+                  port_no = Port_no,
+                  rx_packets = Rx_packets,
+                  tx_packets = Tx_packets,
+                  rx_bytes = Rx_bytes,
+                  tx_bytes = Tx_bytes,
+                  rx_dropped = Rx_dropped,
+                  tx_dropped = Tx_dropped,
+                  rx_errors = Rx_errors,
+                  tx_errors = Tx_errors,
+                  rx_frame_err = Rx_frame_err,
+                  rx_over_err = Rx_over_err,
+                  rx_crc_err = Rx_crc_err,
+                  collisions = Collisions,
+                  duration_sec = Duration_sec,
+                  duration_nsec = Duration_nsec
+                 }) ->
+    [{port_no, Port_no},
+     {rx_packets, Rx_packets},
+     {tx_packets, Tx_packets},
+     {rx_bytes, Rx_bytes},
+     {tx_bytes, Tx_bytes},
+     {rx_dropped, Rx_dropped},
+     {tx_dropped, Tx_dropped},
+     {rx_errors, Rx_errors},
+     {tx_errors, Tx_errors},
+     {rx_frame_err, Rx_frame_err},
+     {rx_over_err, Rx_over_err},
+     {rx_crc_err, Rx_crc_err},
+     {collisions, Collisions},
+     {duration_sec, Duration_sec},
+     {duration_nsec, Duration_nsec}].
 
-decode_instructions(Is) ->
-    [decode(I) || I <- Is].
+dec_queue_stats(#ofp_queue_stats{
+                   port_no = Port_no,
+                   queue_id = Queue_id,
+                   tx_bytes = Tx_bytes,
+                   tx_packets = Tx_packets,
+                   tx_errors = Tx_errors,
+                   duration_sec = Duration_sec,
+                   duration_nsec = Duration_nsec
+                  }) ->
+    [{port_no, Port_no},
+     {queue_id, Queue_id},
+     {tx_bytes, Tx_bytes},
+     {tx_packets, Tx_packets},
+     {tx_errors, Tx_errors},
+     {duration_sec, Duration_sec},
+     {duration_nsec, Duration_nsec}].
 
-decode_match(#ofp_match{ fields = Fields }) ->
-    [decode_field(F) || F <- Fields].
+dec_port(#ofp_port{
+            port_no = Port_no,
+            hw_addr = Hw_addr,
+            name = Name,
+            config = Config,
+            state = State,
+            curr = Curr,
+            advertised = Advertised,
+            supported = Supported,
+            peer = Peer,
+            curr_speed = Curr_speed,
+            max_speed = Max_speed
+           }) ->
+    [{port_no, Port_no},
+     {hw_addr, Hw_addr},
+     {name, Name},
+     {config, Config},
+     {state, State},
+     {curr, Curr},
+     {advertised, Advertised},
+     {supported, Supported},
+     {peer, Peer},
+     {curr_speed, Curr_speed},
+     {max_speed, Max_speed}].
 
-decode_field(#ofp_field{ name = Name, value = Val, has_mask = true, mask = Mask }) ->
-    {Name, Val, Mask};
-decode_field(#ofp_field{ name = Name, value = Val, has_mask = false }) ->
-    {Name, Val}.
+dec_group_stats(#ofp_group_stats{
+                   group_id = Group_id,
+                   ref_count = Ref_count,
+                   packet_count = Packet_count,
+                   byte_count = Byte_count,
+                   duration_sec = Duration_sec,
+                   duration_nsec = Duration_nsec,
+                   bucket_stats = Bucket_stats
+                  }) ->
+    [{group_id, Group_id},
+     {ref_count, Ref_count},
+     {packet_count, Packet_count},
+     {byte_count, Byte_count},
+     {duration_sec, Duration_sec},
+     {duration_nsec, Duration_nsec},
+     {bucket_stats, dec_bucket_counters(Bucket_stats)}].
+
+dec_group_desc(#ofp_group_desc_stats{
+                  type = Type,
+                  group_id = Group_id,
+                  buckets = Buckets
+                 }) ->
+    [{type, Type},
+     {group_id, Group_id},
+     {buckets, [dec_bucket(Bucket) || Bucket <- Buckets]}].
+
+dec_meter_stats(#ofp_meter_stats{
+                   meter_id = Meter_id,
+                   flow_count = Flow_count,
+                   packet_in_count = Packet_in_count,
+                   byte_in_count = Byte_in_count,
+                   duration_sec = Duration_sec,
+                   duration_nsec = Duration_nsec,
+                   band_stats = Band_stats
+                  }) ->
+    [{meter_id, Meter_id},
+     {flow_count, Flow_count},
+     {packet_in_count, Packet_in_count},
+     {byte_in_count, Byte_in_count},
+     {duration_sec, Duration_sec},
+     {duration_nsec, Duration_nsec},
+     {band_stats, dec_meter_band_stats(Band_stats)}].
+
+dec_meter_config(#ofp_meter_config{
+                    flags = Flags,
+                    meter_id = Meter_id,
+                    bands = Bands
+                   }) ->
+    [{flags, Flags},
+     {meter_id, Meter_id},
+     {bands, dec_meter_bands(Bands)}].
