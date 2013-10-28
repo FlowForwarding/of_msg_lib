@@ -664,14 +664,141 @@ dec_table_stats_reply() ->
     Res = of_msg_lib:decode(Msg),
     ?assertEqual(Expect, Res).
 
+-define(SUPPORTED_METADATA_MATCH, <<-1:64>>).
+-define(SUPPORTED_METADATA_WRITE, <<-1:64>>).
+-define(MAX_FLOW_TABLE_ENTRIES, 128).
+-define(SUPPORTED_INSTRUCTIONS, [goto_table,
+                                 write_metadata,
+                                 write_actions,
+                                 apply_actions,
+                                 clear_actions,
+                                 meter]).
+-define(SUPPORTED_ACTIONS, [output,
+                            group,
+                            set_queue,
+                            set_mpls_ttl,
+                            dec_mpls_ttl,
+                            set_nw_ttl,
+                            dec_nw_ttl,
+                            copy_ttl_out,
+                            copy_ttl_in,
+                            push_vlan,
+                            pop_vlan,
+                            push_mpls,
+                            pop_mpls,
+                            push_pbb,
+                            pop_pbb,
+                            set_field
+                           ]).
+-define(SUPPORTED_MATCH_FIELDS, [in_port,
+                                 %% in_phy_port,
+                                 metadata,
+                                 eth_dst,
+                                 eth_src,
+                                 eth_type,
+                                 vlan_vid,
+                                 vlan_pcp,
+                                 ip_dscp,
+                                 ip_ecn,
+                                 ip_proto,
+                                 ipv4_src,
+                                 ipv4_dst,
+                                 tcp_src,
+                                 tcp_dst,
+                                 udp_src,
+                                 udp_dst,
+                                 sctp_src,
+                                 sctp_dst,
+                                 icmpv4_type,
+                                 icmpv4_code,
+                                 arp_op,
+                                 arp_spa,
+                                 arp_tpa,
+                                 arp_sha,
+                                 arp_tha,
+                                 ipv6_src,
+                                 ipv6_dst,
+                                 ipv6_flabel,
+                                 icmpv6_type,
+                                 icmpv6_code,
+                                 ipv6_nd_target,
+                                 ipv6_nd_sll,
+                                 ipv6_nd_tll,
+                                 mpls_label,
+                                 mpls_tc,
+                                 mpls_bos,
+                                 pbb_isid
+                                 %% tunnel_id
+                                 %% ext_hdr
+                                ]).
+-define(SUPPORTED_WILDCARDS, ?SUPPORTED_MATCH_FIELDS).
+-define(SUPPORTED_WRITE_SETFIELDS, ?SUPPORTED_MATCH_FIELDS).
+-define(SUPPORTED_APPLY_SETFIELDS, ?SUPPORTED_WRITE_SETFIELDS).
+
 dec_table_features_reply() ->
     Flags = [],
-    Features = [],
-    ExpFeatures = [],
+    TableId = 3,
+    TableName = <<"Flow Table 3">>,
+    Features = [#ofp_table_features{
+                   table_id = TableId,
+                   name = TableName,
+                   metadata_match = ?SUPPORTED_METADATA_MATCH,
+                   metadata_write = ?SUPPORTED_METADATA_WRITE,
+                   max_entries = ?MAX_FLOW_TABLE_ENTRIES,
+                   properties = [#ofp_table_feature_prop_instructions{
+                                    instruction_ids = ?SUPPORTED_INSTRUCTIONS},
+                                 #ofp_table_feature_prop_instructions_miss{
+                                     instruction_ids = ?SUPPORTED_INSTRUCTIONS},
+                                 #ofp_table_feature_prop_next_tables{
+                                     next_table_ids = lists:seq(TableId+1,?OFPTT_MAX)},
+                                 #ofp_table_feature_prop_next_tables_miss{
+                                     next_table_ids = lists:seq(TableId+1,?OFPTT_MAX)},
+                                 #ofp_table_feature_prop_write_actions{
+                                     action_ids = ?SUPPORTED_ACTIONS},
+                                 #ofp_table_feature_prop_write_actions_miss{
+                                     action_ids = ?SUPPORTED_ACTIONS},
+                                 #ofp_table_feature_prop_apply_actions{
+                                     action_ids = ?SUPPORTED_ACTIONS},
+                                 #ofp_table_feature_prop_apply_actions_miss{
+                                     action_ids = ?SUPPORTED_ACTIONS},
+                                 #ofp_table_feature_prop_match{
+                                     oxm_ids = ?SUPPORTED_MATCH_FIELDS},
+                                 #ofp_table_feature_prop_wildcards{
+                                     oxm_ids = ?SUPPORTED_WILDCARDS},
+                                 #ofp_table_feature_prop_write_setfield{
+                                    oxm_ids = ?SUPPORTED_WRITE_SETFIELDS},
+                                 #ofp_table_feature_prop_write_setfield_miss{
+                                    oxm_ids = ?SUPPORTED_WRITE_SETFIELDS},
+                                 #ofp_table_feature_prop_apply_setfield{
+                                    oxm_ids = ?SUPPORTED_APPLY_SETFIELDS},
+                                 #ofp_table_feature_prop_apply_setfield_miss{
+                                    oxm_ids = ?SUPPORTED_APPLY_SETFIELDS}
+                                ]}],
+    ExpFeatures = [[{table_id, TableId},
+                    {name, TableName},
+                    {metadata_match, ?SUPPORTED_METADATA_MATCH},
+                    {metadata_write, ?SUPPORTED_METADATA_WRITE},
+                    {max_entries, ?MAX_FLOW_TABLE_ENTRIES},
+                    {properties, [
+                                  {instructions,  ?SUPPORTED_INSTRUCTIONS},
+                                  {instructions_miss,  ?SUPPORTED_INSTRUCTIONS},
+                                  {next_tables, lists:seq(TableId+1,?OFPTT_MAX)},
+                                  {next_tables_miss, lists:seq(TableId+1,?OFPTT_MAX)},
+                                  {write_actions, ?SUPPORTED_ACTIONS},
+                                  {write_actions_miss, ?SUPPORTED_ACTIONS},
+                                  {apply_actions, ?SUPPORTED_ACTIONS},
+                                  {apply_actions_miss, ?SUPPORTED_ACTIONS},
+                                  {match, ?SUPPORTED_MATCH_FIELDS},
+                                  {wildcards, ?SUPPORTED_WILDCARDS},
+                                  {write_setfield, ?SUPPORTED_WRITE_SETFIELDS},
+                                  {write_setfield_miss, ?SUPPORTED_WRITE_SETFIELDS},
+                                  {apply_setfield, ?SUPPORTED_APPLY_SETFIELDS},
+                                  {apply_setfield_miss, ?SUPPORTED_APPLY_SETFIELDS}
+                                  ]}]],
     Body = #ofp_table_features_reply{ flags = Flags,
                                       body = Features },
-    Expect = {table_features_reply, [{flags, Flags},
-                                     {tables, ExpFeatures}]},
+    Expect = {table_features_reply, 2, [{flags, Flags},
+                                        {tables, ExpFeatures}]},
     Msg = #ofp_message{version = ?V4, xid=2, body = Body},
     Res = of_msg_lib:decode(Msg),
     ?assertEqual(Expect, Res).

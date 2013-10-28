@@ -325,13 +325,88 @@ get_table_stats() ->
 %%% Get
 get_table_features() ->
     #ofp_table_features_request{}.
+
+%%% ==================================================================================
 %%% Modify
-set_table_features(Features) when is_list(Features) ->
+set_table_features(Tables) when is_list(Tables) ->
     %% TODO: Features format definition
     #ofp_table_features_request{
-       body = Features
+       body = enc_table_features(Tables)
       }.
 
+enc_table_features(Tables) ->
+    [enc_table_feature(Table) || Table <- Tables].
+
+enc_table_feature(Features) ->
+    #ofp_table_features{
+       table_id = get_opt(table_id,Features),
+       name = get_opt(name, Features),
+       metadata_match = get_opt(metadata_match, Features),
+       metadata_write = get_opt(metadata_write, Features),
+       max_entries = get_opt(max_entries, Features),
+       properties = enc_table_features_props(get_opt(properties, Features))
+      }.
+
+enc_table_features_props(Features) ->
+    [enc_table_feature_prop(Feature) || Feature <- Features].
+
+enc_table_feature_prop({instructions, Instruction_ids}) ->
+    #ofp_table_feature_prop_instructions{ instruction_ids = Instruction_ids };
+
+enc_table_feature_prop({instructions_miss, Instruction_ids}) ->
+    #ofp_table_feature_prop_instructions_miss{ instruction_ids = Instruction_ids };
+
+enc_table_feature_prop({next_table, Next_table_ids}) ->
+    #ofp_table_feature_prop_next_tables{ next_table_ids = Next_table_ids };
+
+enc_table_feature_prop({next_table_miss, Next_table_ids}) ->
+    #ofp_table_feature_prop_next_tables_miss{ next_table_ids = Next_table_ids };
+
+enc_table_feature_prop({write_actions, Action_ids}) ->
+    #ofp_table_feature_prop_write_actions{ action_ids = Action_ids };
+
+enc_table_feature_prop({write_actions_miss, Action_ids}) ->
+    #ofp_table_feature_prop_write_actions_miss{ action_ids = Action_ids };
+
+enc_table_feature_prop({apply_actions, Action_ids}) ->
+    #ofp_table_feature_prop_apply_actions{ action_ids = Action_ids };
+
+enc_table_feature_prop({apply_actions_miss, Action_ids}) ->
+    #ofp_table_feature_prop_apply_actions_miss{ action_ids = Action_ids };
+
+enc_table_feature_prop({match, Oxm_ids}) ->
+    #ofp_table_feature_prop_match{ oxm_ids = Oxm_ids };
+
+enc_table_feature_prop({wildcards, Oxm_ids}) ->
+    #ofp_table_feature_prop_wildcards{ oxm_ids = Oxm_ids };
+
+enc_table_feature_prop({write_setfield, Oxm_ids}) ->
+    #ofp_table_feature_prop_write_setfield{ oxm_ids = Oxm_ids };
+
+enc_table_feature_prop({write_setfiled_miss, Oxm_ids}) ->
+    #ofp_table_feature_prop_write_setfield_miss{ oxm_ids = Oxm_ids };
+
+enc_table_feature_prop({apply_setfield, Oxm_ids}) ->
+    #ofp_table_feature_prop_apply_setfield{ oxm_ids = Oxm_ids };
+
+enc_table_feature_prop({apply_setfield_miss, Oxm_ids}) ->
+    #ofp_table_feature_prop_apply_setfield_miss{ oxm_ids = Oxm_ids };
+
+enc_table_feature_prop({experimenter, Pars}) ->
+    #ofp_table_feature_prop_experimenter{
+       experimenter = get_opt(experimenter, Pars),
+       exp_type = get_opt(exp_type, Pars),
+       data = get_opt(data, Pars)
+      };
+
+enc_table_feature_prop({experimenter_miss, Pars}) ->
+    #ofp_table_feature_prop_experimenter_miss{
+       experimenter = get_opt(experimenter, Pars),
+       exp_type = get_opt(exp_type, Pars),
+       data = get_opt(data, Pars)
+      }.
+
+%%% ==================================================================================
 %% ofp_port_desc_request
 %% Get description of all ports in the switch
 get_port_descriptions() ->
@@ -485,6 +560,9 @@ delete_command(Opts) ->
 
 get_opt(Opt, Opts, Default) ->
     proplists:get_value(Opt, Opts, Default).
+
+get_opt(Opt, Opts) ->
+    proplists:get_value(Opt, Opts).
 
 %%============================================================================
 %% Matching
@@ -1470,64 +1548,66 @@ dec_table_features(#ofp_table_features{
      {properties, [dec_table_feature_prop(Prop) || Prop <- Properties]}].
 
 dec_table_feature_prop(#ofp_table_feature_prop_instructions{ instruction_ids = Instruction_ids }) ->
-    [{instruction_ids, Instruction_ids}];
+    {instructions, Instruction_ids};
 
 dec_table_feature_prop(#ofp_table_feature_prop_instructions_miss{ instruction_ids = Instruction_ids }) ->
-    [{instruction_ids, Instruction_ids}];
+    {instructions_miss, Instruction_ids};
 
 dec_table_feature_prop(#ofp_table_feature_prop_next_tables{ next_table_ids = Next_table_ids }) ->
-    [{next_table_ids, Next_table_ids}];
+    {next_tables, Next_table_ids};
 
 dec_table_feature_prop(#ofp_table_feature_prop_next_tables_miss{ next_table_ids = Next_table_ids }) ->
-    [{next_table_ids, Next_table_ids}];
+    {next_tables_miss, Next_table_ids};
 
 dec_table_feature_prop(#ofp_table_feature_prop_write_actions{ action_ids = Action_ids }) ->
-    Action_ids;
+    {write_actions, Action_ids};
 
 dec_table_feature_prop(#ofp_table_feature_prop_write_actions_miss{ action_ids = Action_ids }) ->
-    [{action_ids, Action_ids}];
+    {write_actions_miss, Action_ids};
 
 dec_table_feature_prop(#ofp_table_feature_prop_apply_actions{ action_ids = Action_ids }) ->
-    [{action_ids, Action_ids}];
+    {apply_actions, Action_ids};
 
 dec_table_feature_prop(#ofp_table_feature_prop_apply_actions_miss{ action_ids = Action_ids }) ->
-    [{action_ids, Action_ids}];
+    {apply_actions_miss, Action_ids};
 
 dec_table_feature_prop(#ofp_table_feature_prop_match{ oxm_ids = Oxm_ids }) ->
-    [{oxm_ids, Oxm_ids}];
+    {match, Oxm_ids};
 
 dec_table_feature_prop(#ofp_table_feature_prop_wildcards{ oxm_ids = Oxm_ids }) ->
-    [{oxm_ids, Oxm_ids}];
+    {wildcards, Oxm_ids};
 
 dec_table_feature_prop(#ofp_table_feature_prop_write_setfield{ oxm_ids = Oxm_ids }) ->
-    [{oxm_ids, Oxm_ids}];
+    {write_setfield, Oxm_ids};
 
 dec_table_feature_prop(#ofp_table_feature_prop_write_setfield_miss{ oxm_ids = Oxm_ids }) ->
-    [{oxm_ids, Oxm_ids}];
+    {write_setfield_miss, Oxm_ids};
 
 dec_table_feature_prop(#ofp_table_feature_prop_apply_setfield{ oxm_ids = Oxm_ids }) ->
-    [{oxm_ids, Oxm_ids}];
+    {apply_setfield, Oxm_ids};
 
 dec_table_feature_prop(#ofp_table_feature_prop_apply_setfield_miss{ oxm_ids = Oxm_ids }) ->
-    [{oxm_ids, Oxm_ids}];
+    {apply_setfield_miss, Oxm_ids};
 
 dec_table_feature_prop(#ofp_table_feature_prop_experimenter{
                           experimenter = Experimenter,
                           exp_type = Exp_type,
                           data = Data
                          }) ->
-    [{experimenter, Experimenter},
-     {exp_type, Exp_type},
-     {data, Data}];
+    {experimenter,
+     [{experimenter, Experimenter},
+      {exp_type, Exp_type},
+      {data, Data}]};
 
 dec_table_feature_prop(#ofp_table_feature_prop_experimenter_miss{
                           experimenter = Experimenter,
                           exp_type = Exp_type,
                           data = Data
                          }) ->
-    [{experimenter, Experimenter},
-     {exp_type, Exp_type},
-     {data, Data}].
+    {experimenter_miss,
+     [{experimenter, Experimenter},
+      {exp_type, Exp_type},
+      {data, Data}]}.
 
 %%% ==========================================================================
 dec_port_stats(#ofp_port_stats{
