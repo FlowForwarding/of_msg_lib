@@ -247,12 +247,14 @@
                                   | {experimenter, experimenter_id()}
                                   | {experimenter_miss, experimenter_id()}.
 
+-type table_feature_properties() :: [table_feature_property()].
+
 -type table_feature()            :: {table_id(),
                                      table_name(),
                                      metadata_match(),
                                      metadata_write(),
                                      max_entries(),
-                                     table_feature_property()
+                                     table_feature_properties()
                                     }.
 
 -type table_features()           :: [table_feature()].
