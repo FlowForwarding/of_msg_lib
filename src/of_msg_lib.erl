@@ -291,7 +291,7 @@
 %% Decode a message.
 %% @end
 %%--------------------------------------------------------------------
--spec decode(ofp_message()) -> {xid(), proplists:proplist()}.
+-spec decode(ofp_message()) -> {atom(), xid(), proplists:proplist()}.
 decode(#ofp_message{ version = ?V4, xid = Xid, body = Body }) ->
     {Name, Res} = of_msg_lib_v4:decode(Body),
     {Name, Xid, Res}.
@@ -302,144 +302,160 @@ decode(#ofp_message{ version = ?V4, xid = Xid, body = Body }) ->
 %% Create a features request.
 %% @end
 %%--------------------------------------------------------------------
--spec get_features(version()) -> tuple().
+-spec get_features(version()) -> ofp_message().
 get_features(?V4) ->
-    of_msg_lib_v4:get_features().
+    #ofp_message{ version = ?V4,
+                  body = of_msg_lib_v4:get_features() }.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% Create a get_config request.
 %% @end
 %%--------------------------------------------------------------------
--spec get_config(version()) -> tuple().
+-spec get_config(version()) -> ofp_message().
 get_config(?V4) ->
-    of_msg_lib_v4:get_config().
+    #ofp_message{ version = ?V4,
+                  body = of_msg_lib_v4:get_config() }.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% Create a set_config request.
 %% @end
 %%--------------------------------------------------------------------
--spec set_config(version(), config_flags(), miss_send_len()) -> tuple().
+-spec set_config(version(), config_flags(), miss_send_len()) -> ofp_message().
 set_config(?V4, Flags, PacketInBytes) ->
-    of_msg_lib_v4:set_config(Flags, PacketInBytes).
+    #ofp_message{ version = ?V4,
+                  body = of_msg_lib_v4:set_config(Flags, PacketInBytes) }.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% Create a packet_out request. Data is either a bufferId or a binary packet.
 %% @end
 %%--------------------------------------------------------------------
--spec send_packet(version(), non_neg_integer()|binary(), port_no(), actions()) -> tuple().
+-spec send_packet(version(), non_neg_integer()|binary(), port_no(), actions()) -> ofp_message().
 send_packet(?V4, Data, InPort, Actions) ->
-    of_msg_lib_v4:send_packet(Data, InPort, Actions).
+    #ofp_message{ version = ?V4,
+                  body = of_msg_lib_v4:send_packet(Data, InPort, Actions) }.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% Create a request to add a flow.
 %% @end
 %%--------------------------------------------------------------------
--spec flow_add(version(), matches(), instructions(), opts()) -> tuple().
+-spec flow_add(version(), matches(), instructions(), opts()) -> ofp_message().
 flow_add(?V4, Matches, Instructions, Opts) ->
-    of_msg_lib_v4:flow_add(Matches, Instructions, Opts).
+    #ofp_message{ version = ?V4,
+                  body = of_msg_lib_v4:flow_add(Matches, Instructions, Opts) }.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% Create a request  to modify one or more flows.
 %% @end
 %%--------------------------------------------------------------------
--spec flow_modify(version(), matches(), instructions(), opts()) -> tuple().
+-spec flow_modify(version(), matches(), instructions(), opts()) -> ofp_message().
 flow_modify(?V4, Matches, Instructions, Opts) ->
-    of_msg_lib_v4:flow_modify(Matches, Instructions, Opts).
+    #ofp_message{ version = ?V4,
+                  body = of_msg_lib_v4:flow_modify(Matches, Instructions, Opts) }.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% Create a request to delete one or more flows.
 %% @end
 %%--------------------------------------------------------------------
--spec flow_delete(version(), matches(), opts()) -> tuple().
+-spec flow_delete(version(), matches(), opts()) -> ofp_message().
 flow_delete(?V4, Matches, Opts) ->
-    of_msg_lib_v4:flow_delete(Matches, Opts).
+    #ofp_message{ version = ?V4,
+                  body = of_msg_lib_v4:flow_delete(Matches, Opts) }.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% Create a request to add a group.
 %% @end
 %%--------------------------------------------------------------------
--spec group_add(version(), group_type(), group_id(), buckets()) -> tuple().
+-spec group_add(version(), group_type(), group_id(), buckets()) -> ofp_message().
 group_add(?V4, Type, Id, Buckets) ->
-    of_msg_lib_v4:group_add(Type, Id, Buckets).
+    #ofp_message{ version = ?V4,
+                  body = of_msg_lib_v4:group_add(Type, Id, Buckets) }.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% Create a request to modify a group.
 %% @end
 %%--------------------------------------------------------------------
--spec group_modify(version(), group_type(), group_id(), buckets()) -> tuple().
+-spec group_modify(version(), group_type(), group_id(), buckets()) -> ofp_message().
 group_modify(?V4, Type, Id, Buckets) ->
-    of_msg_lib_v4:group_modify(Type, Id, Buckets).
+    #ofp_message{ version = ?V4,
+                  body = of_msg_lib_v4:group_modify(Type, Id, Buckets) }.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% Create a request to delete a group.
 %% @end
 %%--------------------------------------------------------------------
--spec group_delete(version(), group_type(), group_id()) -> tuple().
+-spec group_delete(version(), group_type(), group_id()) -> ofp_message().
 group_delete(?V4, Type, Id) ->
-    of_msg_lib_v4:group_delete(Type, Id).
+    #ofp_message{ version = ?V4,
+                  body = of_msg_lib_v4:group_delete(Type, Id) }.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% Create a request to change the administrative state of a port to UP.
 %% @end
 %%--------------------------------------------------------------------
--spec set_port_up(version(), mac_addr(), port_no()) -> tuple().
+-spec set_port_up(version(), mac_addr(), port_no()) -> ofp_message().
 set_port_up(?V4, Addr, PortNo) ->
-    of_msg_lib_v4:set_port_up(Addr, PortNo).
+    #ofp_message{ version = ?V4,
+                  body = of_msg_lib_v4:set_port_up(Addr, PortNo) }.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% Create a request to change the administrative state of a port to DOWN.
 %% @end
 %%--------------------------------------------------------------------
--spec set_port_down(version(), mac_addr(), port_no()) -> tuple().
+-spec set_port_down(version(), mac_addr(), port_no()) -> ofp_message().
 set_port_down(?V4, Addr, PortNo) ->
-    of_msg_lib_v4:set_port_down(Addr, PortNo).
+    #ofp_message{ version = ?V4,
+                  body = of_msg_lib_v4:set_port_down(Addr, PortNo) }.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% Create a request to set a port to accept incoming packets.
 %% @end
 %%--------------------------------------------------------------------
--spec set_port_recv(version(), mac_addr(), port_no()) -> tuple().
+-spec set_port_recv(version(), mac_addr(), port_no()) -> ofp_message().
 set_port_recv(?V4, Addr, PortNo) ->
-    of_msg_lib_v4:set_port_recv(Addr, PortNo).
+    #ofp_message{ version = ?V4,
+                  body = of_msg_lib_v4:set_port_recv(Addr, PortNo) }.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% Create a request to set a port to NOT accept incoming packets.
 %% @end
 %%--------------------------------------------------------------------
--spec set_port_no_recv(version(), mac_addr(), port_no()) -> tuple().
+-spec set_port_no_recv(version(), mac_addr(), port_no()) -> ofp_message().
 set_port_no_recv(?V4, Addr, PortNo) ->
-    of_msg_lib_v4:set_port_no_recv(Addr, PortNo).
+    #ofp_message{ version = ?V4,
+                  body = of_msg_lib_v4:set_port_no_recv(Addr, PortNo) }.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% Create a request to set a port to allow sending outgoing packets
 %% @end
 %%--------------------------------------------------------------------
--spec set_port_fwd(version(), mac_addr(), port_no()) -> tuple().
+-spec set_port_fwd(version(), mac_addr(), port_no()) -> ofp_message().
 set_port_fwd(?V4, Addr, PortNo) ->
-    of_msg_lib_v4:set_port_fwd(Addr, PortNo).
+    #ofp_message{ version = ?V4,
+                  body = of_msg_lib_v4:set_port_fwd(Addr, PortNo) }.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% Create a request to set a port to disallow sending outgoing packets.
 %% @end
 %%--------------------------------------------------------------------
--spec set_port_no_fwd(version(), mac_addr(), port_no()) -> tuple().
+-spec set_port_no_fwd(version(), mac_addr(), port_no()) -> ofp_message().
 set_port_no_fwd(?V4, Addr, PortNo) ->
-    of_msg_lib_v4:set_port_no_fwd(Addr, PortNo).
+    #ofp_message{ version = ?V4,
+                  body = of_msg_lib_v4:set_port_no_fwd(Addr, PortNo) }.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -447,9 +463,10 @@ set_port_no_fwd(?V4, Addr, PortNo) ->
 %% a table miss.
 %% @end
 %%--------------------------------------------------------------------
--spec set_port_packet_in(version(), mac_addr(), port_no()) -> tuple().
+-spec set_port_packet_in(version(), mac_addr(), port_no()) -> ofp_message().
 set_port_packet_in(?V4, Addr, PortNo) ->
-    of_msg_lib_v4:set_port_packet_in(Addr, PortNo).
+    #ofp_message{ version = ?V4,
+                  body = of_msg_lib_v4:set_port_packet_in(Addr, PortNo) }.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -457,9 +474,10 @@ set_port_packet_in(?V4, Addr, PortNo) ->
 %% case of a table miss.
 %% @end
 %%--------------------------------------------------------------------
--spec set_port_no_packet_in(version(), mac_addr(), port_no()) -> tuple().
+-spec set_port_no_packet_in(version(), mac_addr(), port_no()) -> ofp_message().
 set_port_no_packet_in(?V4, Addr, PortNo) ->
-    of_msg_lib_v4:set_port_no_packet_in(Addr, PortNo).
+    #ofp_message{ version = ?V4,
+                  body = of_msg_lib_v4:set_port_no_packet_in(Addr, PortNo) }.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -467,171 +485,190 @@ set_port_no_packet_in(?V4, Addr, PortNo) ->
 %% hardware revision, software revision, serial number, and a description.
 %% @end
 %%--------------------------------------------------------------------
--spec get_description(version()) -> tuple().
+-spec get_description(version()) -> ofp_message().
 get_description(?V4) ->
-    of_msg_lib_v4:get_description().
+    #ofp_message{ version = ?V4,
+                  body = of_msg_lib_v4:get_description() }.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% Create a request to get flow statistics.
 %% @end
 %%--------------------------------------------------------------------
--spec get_flow_statistsics(version(), table_id(), matches(), opts()) -> tuple().
+-spec get_flow_statistsics(version(), table_id(), matches(), opts()) -> ofp_message().
 get_flow_statistsics(?V4, TableId, Matches, Opts) ->
-    of_msg_lib_v4:get_flow_statistsics(TableId, Matches, Opts).
+    #ofp_message{ version = ?V4,
+                  body = of_msg_lib_v4:get_flow_statistsics(TableId, Matches, Opts) }.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% Create a request to get aggregate flow statistics.
 %% @end
 %%--------------------------------------------------------------------
--spec get_aggregate_statistics(version(), table_id(), matches(), opts()) -> tuple().
+-spec get_aggregate_statistics(version(), table_id(), matches(), opts()) -> ofp_message().
 get_aggregate_statistics(?V4, TableId, Matches, Opts) ->
-    of_msg_lib_v4:get_aggregate_statistics(TableId, Matches, Opts).
+    #ofp_message{ version = ?V4,
+                  body = of_msg_lib_v4:get_aggregate_statistics(TableId, Matches, Opts) }.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% Create a request to get table statistics.
 %% @end
 %%--------------------------------------------------------------------
--spec get_table_stats(version()) -> tuple().
+-spec get_table_stats(version()) -> ofp_message().
 get_table_stats(?V4) ->
-    of_msg_lib_v4:get_table_stats().
+    #ofp_message{ version = ?V4,
+                  body = of_msg_lib_v4:get_table_stats() }.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% Create a request to get table features.
 %% @end
 %%--------------------------------------------------------------------
--spec get_table_features(version()) -> tuple().
+-spec get_table_features(version()) -> ofp_message().
 get_table_features(?V4) ->
-    of_msg_lib_v4:get_table_features().
+    #ofp_message{ version = ?V4,
+                  body = of_msg_lib_v4:get_table_features() }.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% Create a request to set table features.
 %% @end
 %%--------------------------------------------------------------------
--spec set_table_features(version(), table_features()) -> tuple().
+-spec set_table_features(version(), table_features()) -> ofp_message().
 set_table_features(?V4, Features) ->
-    of_msg_lib_v4:set_table_features(Features).
+    #ofp_message{ version = ?V4,
+                  body = of_msg_lib_v4:set_table_features(Features) }.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% Create a request to get port descriptions.
 %% @end
 %%--------------------------------------------------------------------
--spec get_port_descriptions(version()) -> tuple().
+-spec get_port_descriptions(version()) -> ofp_message().
 get_port_descriptions(?V4) ->
-    of_msg_lib_v4:get_port_descriptions().
+    #ofp_message{ version = ?V4,
+                  body = of_msg_lib_v4:get_port_descriptions() }.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% Create a request to get port statistics.
 %% @end
 %%--------------------------------------------------------------------
--spec get_port_statistics(version(), port_no()) -> tuple().
+-spec get_port_statistics(version(), port_no()) -> ofp_message().
 get_port_statistics(?V4, Port) ->
-    of_msg_lib_v4:get_port_statistics(Port).
+    #ofp_message{ version = ?V4,
+                  body = of_msg_lib_v4:get_port_statistics(Port) }.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% Create a request to get queue statistics.
 %% @end
 %%--------------------------------------------------------------------
--spec get_queue_statistics(version(), port_no(), queue_id()) -> tuple().
+-spec get_queue_statistics(version(), port_no(), queue_id()) -> ofp_message().
 get_queue_statistics(?V4, PortNo, QueueId) ->
-    of_msg_lib_v4:get_queue_statistics(PortNo, QueueId).
+    #ofp_message{ version = ?V4,
+                  body = of_msg_lib_v4:get_queue_statistics(PortNo, QueueId) }.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% Create a request to get group statistics.
 %% @end
 %%--------------------------------------------------------------------
--spec get_group_statistics(version(), group_id()) -> tuple().
+-spec get_group_statistics(version(), group_id()) -> ofp_message().
 get_group_statistics(?V4, GroupId) ->
-    of_msg_lib_v4:get_group_statistics(GroupId).
+    #ofp_message{ version = ?V4,
+                  body = of_msg_lib_v4:get_group_statistics(GroupId) }.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% Create a request to get group descriptions.
 %% @end
 %%--------------------------------------------------------------------
--spec get_group_descriptions(version()) -> tuple().
+-spec get_group_descriptions(version()) -> ofp_message().
 get_group_descriptions(?V4) ->
-    of_msg_lib_v4:get_group_descriptions().
+    #ofp_message{ version = ?V4,
+                  body = of_msg_lib_v4:get_group_descriptions() }.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% Create a request to get group features.
 %% @end
 %%--------------------------------------------------------------------
--spec get_group_features(version()) -> tuple().
+-spec get_group_features(version()) -> ofp_message().
 get_group_features(?V4) ->
-    of_msg_lib_v4:get_group_features().
+    #ofp_message{ version = ?V4,
+                  body = of_msg_lib_v4:get_group_features() }.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% Create a request to get meter statistics.
 %% @end
 %%--------------------------------------------------------------------
--spec get_meter_stats(version(), meter_id()) -> tuple().
+-spec get_meter_stats(version(), meter_id()) -> ofp_message().
 get_meter_stats(?V4, MeterId) ->
-    of_msg_lib_v4:get_meter_stats(MeterId).
+    #ofp_message{ version = ?V4,
+                  body = of_msg_lib_v4:get_meter_stats(MeterId) }.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% Create a request to get meter configuration.
 %% @end
 %%--------------------------------------------------------------------
--spec get_meter_configuration(version(), meter_id()) -> tuple().
+-spec get_meter_configuration(version(), meter_id()) -> ofp_message().
 get_meter_configuration(?V4, MeterId) ->
-    of_msg_lib_v4:get_meter_configuration(MeterId).
+    #ofp_message{ version = ?V4,
+                  body = of_msg_lib_v4:get_meter_configuration(MeterId) }.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% Create a request to get meter features.
 %% @end
 %%--------------------------------------------------------------------
--spec get_meter_features(version()) -> tuple().
+-spec get_meter_features(version()) -> ofp_message().
 get_meter_features(?V4) ->
-    of_msg_lib_v4:get_meter_features().
+    #ofp_message{ version = ?V4,
+                  body = of_msg_lib_v4:get_meter_features() }.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% Create an experimenter request.
 %% @end
 %%--------------------------------------------------------------------
--spec experimenter(version(), experimenter_id(), exp_type(), binary()) -> tuple().
+-spec experimenter(version(), experimenter_id(), exp_type(), binary()) -> ofp_message().
 experimenter(?V4, ExpId, Type, Data) ->
-    of_msg_lib_v4:experimenter(ExpId, Type, Data).
+    #ofp_message{ version = ?V4,
+                  body = of_msg_lib_v4:experimenter(ExpId, Type, Data) }.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% Create a barrier request.
 %% @end
 %%--------------------------------------------------------------------
--spec barrier(version()) -> tuple().
+-spec barrier(version()) -> ofp_message().
 barrier(?V4) ->
-    of_msg_lib_v4:barrier().
+    #ofp_message{ version = ?V4,
+                  body = of_msg_lib_v4:barrier() }.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% Create a request to get queue configuration.
 %% @end
 %%--------------------------------------------------------------------
--spec get_queue_configuration(version(), port_no()) -> tuple().
+-spec get_queue_configuration(version(), port_no()) -> ofp_message().
 get_queue_configuration(?V4, PortNo) ->
-    of_msg_lib_v4:get_queue_configuration(PortNo).
+    #ofp_message{ version = ?V4,
+                  body = of_msg_lib_v4:get_queue_configuration(PortNo) }.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% Create a request to change the role of the controller.
 %% @end
 %%--------------------------------------------------------------------
--spec set_role(version(), role(), generation_id()) -> tuple().
+-spec set_role(version(), role(), generation_id()) -> ofp_message().
 set_role(?V4, Role, GenerationId) ->
-    of_msg_lib_v4:set_role(Role, GenerationId).
+    #ofp_message{ version = ?V4,
+                  body = of_msg_lib_v4:set_role(Role, GenerationId) }.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -639,9 +676,10 @@ set_role(?V4, Role, GenerationId) ->
 %% asynchronous messages.
 %% @end
 %%--------------------------------------------------------------------
--spec get_async_configuration(version()) -> tuple().
+-spec get_async_configuration(version()) -> ofp_message().
 get_async_configuration(?V4) ->
-    of_msg_lib_v4:get_async_configuration().
+    #ofp_message{ version = ?V4,
+                  body = of_msg_lib_v4:get_async_configuration() }.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -649,36 +687,42 @@ get_async_configuration(?V4) ->
 %% asynchronous messages.
 %% @end
 %%--------------------------------------------------------------------
--spec set_async_configuration(version(), packet_in_mask(), port_status_mask(), flow_removed_mask()) -> tuple().
+-spec set_async_configuration(version(), packet_in_mask(), port_status_mask(), flow_removed_mask()) -> ofp_message().
 set_async_configuration(?V4, PacketInMask, PortStatusMask, FlowRemovedMask) ->
-    of_msg_lib_v4:set_async_configuration(PacketInMask, PortStatusMask, FlowRemovedMask).
+    #ofp_message{ version = ?V4,
+                  body = of_msg_lib_v4:set_async_configuration(PacketInMask,
+                                                               PortStatusMask,
+                                                               FlowRemovedMask) }.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% Create a request to add a meter.
 %% @end
 %%--------------------------------------------------------------------
--spec meter_add(version(), meter_flags(), meter_id(), bands()) -> tuple().
+-spec meter_add(version(), meter_flags(), meter_id(), bands()) -> ofp_message().
 meter_add(?V4, Flags, MeterId, Bands) ->
-    of_msg_lib_v4:meter_add(Flags, MeterId, Bands).
+    #ofp_message{ version = ?V4,
+                  body = of_msg_lib_v4:meter_add(Flags, MeterId, Bands) }.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% Create a request to modify a meter.
 %% @end
 %%--------------------------------------------------------------------
--spec meter_modify(version(), meter_flags(), meter_id(), bands()) -> tuple().
+-spec meter_modify(version(), meter_flags(), meter_id(), bands()) -> ofp_message().
 meter_modify(?V4, Flags, MeterId, Bands) ->
-    of_msg_lib_v4:meter_modify(Flags, MeterId, Bands).
+    #ofp_message{ version = ?V4,
+                  body = of_msg_lib_v4:meter_modify(Flags, MeterId, Bands) }.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% Create a request to delete a meter.
 %% @end
 %%--------------------------------------------------------------------
--spec meter_delete(version(), meter_id()) -> tuple().
+-spec meter_delete(version(), meter_id()) -> ofp_message().
 meter_delete(?V4, MeterId) ->
-    of_msg_lib_v4:meter_delete(MeterId).
+    #ofp_message{ version = ?V4,
+                  body = of_msg_lib_v4:meter_delete(MeterId) }.
 
 %%%===================================================================
 %%% Internal functions

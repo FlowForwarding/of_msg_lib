@@ -1265,6 +1265,6 @@ dec_experimenter() ->
 %%% ==================================================================
 
 encode_decode(?V4, Msg) ->
-    Bin = ofp_v4_encode:do(#ofp_message{ version = ?V4, xid = 1, body = Msg }),
-    {ok, #ofp_message{ version = ?V4, xid = 1, body = Msg1 }, <<>>} = ofp_v4_decode:do(Bin),
-    Msg1.
+    Bin = ofp_v4_encode:do(Msg),
+    {ok,  Msg1, <<>>} = ofp_v4_decode:do(Bin),
+    Msg1#ofp_message{ type = undefined }.
