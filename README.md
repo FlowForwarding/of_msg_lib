@@ -23,5 +23,5 @@ rebar compile
 To run the unit tests
 
 ```
-rebar skip-deps=true eunit
+rebar skip_deps=true eunit
 ```
