@@ -28,6 +28,7 @@
 %% API
 
 -export([decode/1,
+         hello/2,
          echo_request/2,
          get_features/1,
          get_config/1,
@@ -76,7 +77,8 @@
 
 -define(V4, 4).
 
--type version()                :: 4.
+-type version()                :: ?V4.
+-type supported_versions()     :: [?V4].
 -type config_flags()           :: frag_normal
                                 | frag_drop
                                 | frag_reasm
@@ -297,7 +299,29 @@
 -spec decode(ofp_message()) -> {atom(), xid(), proplists:proplist()}.
 decode(#ofp_message{ version = ?V4, xid = Xid, body = Body }) ->
     {Name, Res} = of_msg_lib_v4:decode(Body),
+    {Name, Xid, Res};
+decode(#ofp_message{ version = Version, xid = Xid, body = Body })
+                                                    when Version < 4 ->
+    % decode first looks for protocol versions it knows about, older
+    % unsupported versions end up here.  The only unsupported versions
+    % of OF we should get are the handshake hello messages.
+    {Name, Res} = decode_hello(Body),
+    {Name, Xid, Res};
+decode(#ofp_message{ xid = Xid, body = Body }) ->
+    % newer unsupported versions of OF protocol.  Assume that
+    % the newest version of our OF parser can decode the hello message.
+    {Name, Res} = of_msg_lib_v4:decode(Body),
     {Name, Xid, Res}.
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Create hello.
+%% @end
+%%--------------------------------------------------------------------
+-spec hello(version(), supported_versions()) -> ofp_message().
+hello(?V4, SupportedVersions) ->
+    #ofp_message{ version = ?V4,
+                  body = of_msg_lib_v4:hello(SupportedVersions) }.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -739,3 +763,6 @@ meter_delete(?V4, MeterId) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+
+decode_hello(#ofp_hello{}) ->
+    {hello, []}.

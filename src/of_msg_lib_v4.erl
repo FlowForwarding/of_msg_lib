@@ -19,7 +19,8 @@
 
 -module(of_msg_lib_v4).
 
--export([echo_request/1,
+-export([hello/1,
+         echo_request/1,
          get_features/0,
          get_config/0,
          set_config/2,
@@ -106,7 +107,12 @@
          ipv6_exthdr/1, ipv6_exthdr/2
         ]).
 
+-include_lib("of_protocol/include/of_protocol.hrl").
 -include_lib("of_protocol/include/ofp_v4.hrl").
+
+%% hello
+hello(Versions) ->
+    #ofp_hello{elements = [{versionbitmap, Versions}]}.
 
 %% echo request
 echo_request(Data) ->
@@ -1078,6 +1084,11 @@ mk_bucket({Weight, PortNo, GroupId, Actions}) ->
 
 %%%=========================================================================
 %%% Decode Normal Replies
+
+decode(#ofp_hello{
+          elements = Elements
+         }) ->
+    {hello, Elements};
 
 decode(#ofp_features_reply{
           datapath_mac = Datapath_mac,

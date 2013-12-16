@@ -27,6 +27,7 @@
 
 of_msg_lib_test_() ->
     [
+     {"Hello", fun out_hello/0},
      {"Echo request", fun echo_request/0},
      {"Get features", fun get_features/0},
      {"Get config", fun get_config/0},
@@ -74,6 +75,9 @@ of_msg_lib_test_() ->
 
 decode_test_() ->
     [
+     {"hello v4", fun in_hello_v4/0},
+     {"hello v3-", fun in_hello_v3minus/0},
+     {"hello v15", fun in_hello_v15/0},
      {"Features reply", fun dec_features_reply/0},
      {"Config reply", fun dec_config_reply/0},
      {"Desc reply", fun dec_desc_reply/0},
@@ -105,6 +109,12 @@ decode_test_() ->
      {"Experimenter", fun dec_experimenter/0}
     ].
 
+
+out_hello() ->
+    % version bit field is returned in reverse sorted order, so keep
+    % them that way in the sample data so the assertEqual is true.
+    Msg = of_msg_lib:hello(?V4, [5,4]),
+    ?assertEqual(Msg, encode_decode(?V4, Msg)).
 
 echo_request() ->
     Msg = of_msg_lib:echo_request(?V4, <<1,2,3,4,5,6,7>>),
@@ -353,6 +363,27 @@ meter_delete() ->
     Msg = of_msg_lib:meter_delete(?V4, 10),
     ?assertEqual(Msg, encode_decode(?V4, Msg)).
 
+
+in_hello_v4() ->
+    Body = #ofp_hello{elements = [{versionbitmap, [5,4]}]},
+    Msg = #ofp_message{version = 4, xid = 0, body = Body},
+    Expect = {hello, 0, [{versionbitmap, [5,4]}]},
+    Res = of_msg_lib:decode(Msg),
+    ?assertEqual(Expect, Res).
+
+in_hello_v3minus() ->
+    Body = #ofp_hello{},
+    Msg = #ofp_message{version = 3, xid = 0, body = Body},
+    Expect = {hello, 0, []},
+    Res = of_msg_lib:decode(Msg),
+    ?assertEqual(Expect, Res).
+
+in_hello_v15() ->
+    Body = #ofp_hello{elements = [{versionbitmap, [15]}]},
+    Msg = #ofp_message{version = 15, xid = 0, body = Body},
+    Expect = {hello, 0, [{versionbitmap, [15]}]},
+    Res = of_msg_lib:decode(Msg),
+    ?assertEqual(Expect, Res).
 
 dec_features_reply() ->
     Body = #ofp_features_reply{
@@ -1152,7 +1183,6 @@ dec_flow_removed() ->
 
 dec_port_status() ->
     Reason = modify,
-    Flags = [],
     Port_no = 24,
     Hw_addr = <<1,2,3,4,5,6>>,
     Name = <<"Port24">>,
