@@ -27,6 +27,7 @@
 
 of_msg_lib_test_() ->
     [
+     {"Echo request", fun echo_request/0},
      {"Get features", fun get_features/0},
      {"Get config", fun get_config/0},
      {"Set config", fun set_config/0},
@@ -104,6 +105,10 @@ decode_test_() ->
      {"Experimenter", fun dec_experimenter/0}
     ].
 
+
+echo_request() ->
+    Msg = of_msg_lib:echo_request(?V4, <<1,2,3,4,5,6,7>>),
+    ?assertEqual(Msg, encode_decode(?V4, Msg)).
 
 get_features() ->
     Msg = of_msg_lib:get_features(?V4),

@@ -19,7 +19,8 @@
 
 -module(of_msg_lib_v4).
 
--export([get_features/0,
+-export([echo_request/1,
+         get_features/0,
          get_config/0,
          set_config/2,
          send_packet/3,
@@ -106,6 +107,10 @@
         ]).
 
 -include_lib("of_protocol/include/ofp_v4.hrl").
+
+%% echo request
+echo_request(Data) ->
+    #ofp_echo_request{data = Data}.
 
 %% Get basic information from the switch. Used at first connection to get
 %% DataPathId and capabilities.

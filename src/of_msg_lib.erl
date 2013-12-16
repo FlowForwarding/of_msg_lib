@@ -28,6 +28,7 @@
 %% API
 
 -export([decode/1,
+         echo_request/2,
          get_features/1,
          get_config/1,
          set_config/3,
@@ -298,6 +299,15 @@ decode(#ofp_message{ version = ?V4, xid = Xid, body = Body }) ->
     {Name, Res} = of_msg_lib_v4:decode(Body),
     {Name, Xid, Res}.
 
+%%--------------------------------------------------------------------
+%% @doc
+%% Create an echo request.
+%% @end
+%%--------------------------------------------------------------------
+-spec echo_request(version(), binary()) -> ofp_message().
+echo_request(?V4, Data) ->
+    #ofp_message{ version = ?V4,
+                  body = of_msg_lib_v4:echo_request(Data) }.
 
 %%--------------------------------------------------------------------
 %% @doc
