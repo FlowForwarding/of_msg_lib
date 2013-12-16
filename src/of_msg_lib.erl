@@ -27,7 +27,8 @@
 
 %% API
 
--export([decode/1,
+-export([create_error/3,
+         decode/1,
          hello/2,
          echo_request/2,
          get_features/1,
@@ -312,6 +313,16 @@ decode(#ofp_message{ xid = Xid, body = Body }) ->
     % the newest version of our OF parser can decode the hello message.
     {Name, Res} = of_msg_lib_v4:decode(Body),
     {Name, Xid, Res}.
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Create error
+%% @end
+%%--------------------------------------------------------------------
+-spec create_error(version(), atom(), atom()) -> ofp_message().
+create_error(?V4, Type, Code) ->
+    #ofp_message{ version = ?V4,
+                  body = of_msg_lib_v4:create_error(Type, Code) }.
 
 %%--------------------------------------------------------------------
 %% @doc

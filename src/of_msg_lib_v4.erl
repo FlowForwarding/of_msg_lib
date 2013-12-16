@@ -19,7 +19,8 @@
 
 -module(of_msg_lib_v4).
 
--export([hello/1,
+-export([create_error/2,
+         hello/1,
          echo_request/1,
          get_features/0,
          get_config/0,
@@ -109,6 +110,10 @@
 
 -include_lib("of_protocol/include/of_protocol.hrl").
 -include_lib("of_protocol/include/ofp_v4.hrl").
+
+%% error message
+create_error(Type, Code) ->
+    #ofp_error_msg{type = Type, code = Code}.
 
 %% hello
 hello(Versions) ->

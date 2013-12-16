@@ -27,6 +27,7 @@
 
 of_msg_lib_test_() ->
     [
+     {"Create error v4", fun create_error_v4/0},
      {"Hello", fun out_hello/0},
      {"Echo request", fun echo_request/0},
      {"Get features", fun get_features/0},
@@ -109,6 +110,9 @@ decode_test_() ->
      {"Experimenter", fun dec_experimenter/0}
     ].
 
+create_error_v4() ->
+    Msg = of_msg_lib:create_error(4, hello_failed, compatible),
+    ?debugMsg(io_lib:format("~n~P~n", [Msg, -1])).
 
 out_hello() ->
     % version bit field is returned in reverse sorted order, so keep
