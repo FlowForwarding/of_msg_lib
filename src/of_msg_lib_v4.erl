@@ -41,7 +41,7 @@
          set_port_packet_in/2,
          set_port_no_packet_in/2,
          get_description/0,
-         get_flow_statistsics/3,
+         get_flow_statistics/3,
          get_aggregate_statistics/3,
          get_table_stats/0,
          get_table_features/0,
@@ -310,7 +310,7 @@ get_description() ->
 
 %% ofp_flow_stats_request
 %% Get flow statistics from one or all flow tables.
-get_flow_statistsics(TableId, Matches, Opts) ->
+get_flow_statistics(TableId, Matches, Opts) ->
     #ofp_flow_stats_request{
        table_id = TableId,
        out_port = get_opt(out_port, Opts, any),

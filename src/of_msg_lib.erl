@@ -50,7 +50,7 @@
          set_port_packet_in/3,
          set_port_no_packet_in/3,
          get_description/1,
-         get_flow_statistsics/4,
+         get_flow_statistics/4,
          get_aggregate_statistics/4,
          get_table_stats/1,
          get_table_features/1,
@@ -542,10 +542,10 @@ get_description(?V4) ->
 %% Create a request to get flow statistics.
 %% @end
 %%--------------------------------------------------------------------
--spec get_flow_statistsics(version(), table_id(), matches(), opts()) -> ofp_message().
-get_flow_statistsics(?V4, TableId, Matches, Opts) ->
+-spec get_flow_statistics(version(), table_id(), matches(), opts()) -> ofp_message().
+get_flow_statistics(?V4, TableId, Matches, Opts) ->
     #ofp_message{ version = ?V4,
-                  body = of_msg_lib_v4:get_flow_statistsics(TableId, Matches, Opts) }.
+                  body = of_msg_lib_v4:get_flow_statistics(TableId, Matches, Opts) }.
 
 %%--------------------------------------------------------------------
 %% @doc
