@@ -49,7 +49,7 @@ of_msg_lib_test_() ->
      {"set port packet in", fun set_port_packet_in/0},
      {"set port no packet in", fun set_port_no_packet_in/0},
      {"get description", fun get_description/0},
-     {"get flow statistsics", fun get_flow_statistsics/0},
+     {"get flow statistics", fun get_flow_statistics/0},
      {"get aggregate statistics", fun get_aggregate_statistics/0},
      {"get table stats", fun get_table_stats/0},
      {"get table features", fun get_table_features/0},
@@ -248,8 +248,8 @@ get_description() ->
     Msg = of_msg_lib:get_description(?V4),
     ?assertEqual(Msg, encode_decode(?V4, Msg)).
 
-get_flow_statistsics() ->
-    Msg = of_msg_lib:get_flow_statistsics(?V4,
+get_flow_statistics() ->
+    Msg = of_msg_lib:get_flow_statistics(?V4,
                                           3, %% table_id
                                           [{in_port,6}, {eth_dst,<<0,0,0,0,0,8>>}],
                                           []),
@@ -1121,6 +1121,7 @@ dec_packet_in() ->
     Reason = 0,
     Table_id = 0,
     Cookie = 0,
+    Data = <<"data data data">>,
     Match = #ofp_match{ fields = [#ofp_field{name = in_port, value = 6},
                                   #ofp_field{name = eth_dst,
                                              value = <<0,0,0,0,0,8>>}]},
@@ -1129,14 +1130,16 @@ dec_packet_in() ->
           reason = Reason,
           table_id = Table_id,
           cookie = Cookie,
-          match = Match
+          match = Match,
+          data = Data
          },
     ExpMatch = [{in_port,6}, {eth_dst,<<0,0,0,0,0,8>>}],
     Expect = {packet_in, 2, [{buffer_id, Buffer_id},
                              {reason, Reason},
                              {table_id, Table_id},
                              {cookie, Cookie},
-                             {match, ExpMatch}]},
+                             {match, ExpMatch},
+                             {data, Data}]},
 
     Msg = #ofp_message{version = ?V4, xid=2, body = Body},
     Res = of_msg_lib:decode(Msg),

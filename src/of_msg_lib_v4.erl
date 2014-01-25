@@ -1258,13 +1258,15 @@ decode(#ofp_packet_in{
           reason = Reason,
           table_id = Table_id,
           cookie = Cookie,
-          match = Match
+          match = Match,
+          data = Data
          }) ->
     {packet_in, [{buffer_id, Buffer_id},
                  {reason, Reason},
                  {table_id, Table_id},
                  {cookie, Cookie},
-                 {match, dec_match(Match)}]};
+                 {match, dec_match(Match)},
+                 {data, Data}]};
 
 decode(#ofp_flow_removed{
           cookie = Cookie,
