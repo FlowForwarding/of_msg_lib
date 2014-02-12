@@ -603,6 +603,7 @@ add_required_fields(Field, Acc) ->
     case required(Field) of
 	{F,V} ->
 	    case has_match(F,V,Acc) of
+                % XXX unhandled case 'other'
 		missing ->
 		    [?MODULE:F(V)|add_required_fields(F, Acc)];
 		present ->
@@ -613,7 +614,7 @@ add_required_fields(Field, Acc) ->
 		true ->
 		    Acc;
 		false ->
-		    throw({missing_match,M})
+		    throw({missing_match,M,Acc})
 	    end;
 	none ->
 	    Acc
@@ -636,15 +637,15 @@ required(vlan_pcp) ->
     %% this needs work
     {vlan_vid,none};
 required(ip_dscp) ->
-    [{eth_type,16#800},{eth_type,16#86dd}];
+    [{eth_type,<<16#800:16>>},{eth_type,<<16#86dd:16>>}];
 required(ip_ecn) ->
-    [{eth_type,16#800},{eth_type,16#86dd}];
+    [{eth_type,<<16#800:16>>},{eth_type,<<16#86dd:16>>}];
 required(ip_proto) ->
     [{eth_type,<<16#800:16>>},{eth_type,<<16#86dd:16>>}];
 required(ipv4_src) ->
-    {eth_type,16#800};
+    {eth_type,<<16#800:16>>};
 required(ipv4_dst) ->
-    {eth_type,16#800};
+    {eth_type,<<16#800:16>>};
 required(tcp_src) ->
     {ip_proto,6};
 required(tcp_dst) ->
@@ -662,21 +663,21 @@ required(icmpv4_type) ->
 required(icmpv4_code) ->
     {ip_proto,1};
 required(arp_op) ->
-    {eth_type,16#806};
+    {eth_type,<<16#806:16>>};
 required(arp_spa) ->
-    {eth_type,16#806};
+    {eth_type,<<16#806:16>>};
 required(arp_tpa) ->
-    {eth_type,16#806};
+    {eth_type,<<16#806:16>>};
 required(arp_sha) ->
-    {eth_type,16#806};
+    {eth_type,<<16#806:16>>};
 required(arp_tha) ->
-    {eth_type,16#806};
+    {eth_type,<<16#806:16>>};
 required(ipv6_src) ->
-    {eth_type,16#86dd};
+    {eth_type,<<16#86dd:16>>};
 required(ipv6_dst) ->
-    {eth_type,16#86dd};
+    {eth_type,<<16#86dd:16>>};
 required(ipv6_flabel) ->
-    {eth_type,16#86dd};
+    {eth_type,<<16#86dd:16>>};
 required(icmpv6_type) ->
     {ip_proto,58};
 required(icmpv6_code) ->
@@ -688,15 +689,15 @@ required(ipv6_nd_sll) ->
 required(ipv6_nd_tll) ->
     {icmpv6_type,136};
 required(mpls_label) ->
-    [{eth_type,16#8847},{eth_type,16#8848}];
+    [{eth_type,<<16#8847:16>>},{eth_type,<<16#8848:16>>}];
 required(mpls_tc) ->
-    [{eth_type,16#8847},{eth_type,16#8848}];
+    [{eth_type,<<16#8847:16>>},{eth_type,<<16#8848:16>>}];
 required(mpls_bos) ->
-    [{eth_type,16#8847},{eth_type,16#8848}];
+    [{eth_type,<<16#8847:16>>},{eth_type,<<16#8848:16>>}];
 required(pbb_isid) ->
-    {eth_type,16#88E7};
+    {eth_type,<<16#88E7:16>>};
 required(ipv6_exthdr) ->
-    {eth_type,16#86dd};
+    {eth_type,<<16#86dd:16>>};
 required(_) ->
     none.
 
@@ -783,10 +784,12 @@ ip_ecn(Val) when byte_size(Val) == 2 ->
     #ofp_field{name = ip_ecn,
                value = Val}.
 
-ip_proto(Val) when byte_size(Val) == 8 ->
+ip_proto(Val) when byte_size(Val) == 1 ->
     #ofp_field{name = ip_proto,
                value = Val}.
 
+ipv4_src({A,B,C,D}) ->
+    ipv4_src(<<A:8,B:8,C:8,D:8>>);
 ipv4_src(Val) when byte_size(Val) == 4 ->
     #ofp_field{name = ipv4_src,
                value = Val}.
@@ -796,6 +799,8 @@ ipv4_src(Val, Mask) when byte_size(Val) == 4, byte_size(Mask) == 4 ->
                has_mask = true,
                mask = Mask}.
 
+ipv4_dst({A,B,C,D}) ->
+    ipv4_dst(<<A:8,B:8,C:8,D:8>>);
 ipv4_dst(Val) when byte_size(Val) == 4 ->
     #ofp_field{name = ipv4_dst,
                value = Val}.
