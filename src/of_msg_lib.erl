@@ -39,6 +39,9 @@
          flow_add/4,
          flow_modify/4,
          flow_delete/3,
+         flow_monitor_request_add/5,
+         flow_monitor_request_delete/5,
+         flow_monitor_request_modify/5,
          group_add/4,
          group_modify/4,
          group_delete/3,
@@ -50,6 +53,10 @@
          set_port_no_fwd/3,
          set_port_packet_in/3,
          set_port_no_packet_in/3,
+         get_table_desc/2,
+         get_queue_desc/4,
+         set_table_mod_eviction/3,
+         set_table_mod_vacancy_events/3,
          get_description/1,
          get_flow_statistics/4,
          get_aggregate_statistics/4,
@@ -63,9 +70,13 @@
          get_group_descriptions/1,
          get_group_features/1,
          get_meter_stats/2,
+         get_meter_stats/3,
          get_meter_configuration/2,
+         get_meter_configuration/3,
          get_meter_features/1,
+         get_meter_features/2,
          experimenter/4,
+         experimenter/5,
          barrier/1,
          get_queue_configuration/2,
          set_role/3,
@@ -73,14 +84,20 @@
          set_async_configuration/4,
          meter_add/4,
          meter_modify/4,
-         meter_delete/2]).
+         meter_delete/2,
+         requestforward/2,
+         bundle_ctrl_msg/5,
+         bundle_add_msg/5
+         ]).
 
 -include_lib("of_protocol/include/of_protocol.hrl").
 
 -define(V4, 4).
+-define(V5, 5).
 
--type version()                :: ?V4.
--type supported_versions()     :: [?V4].
+-type version()                :: pos_integer().
+
+-type supported_versions()     :: [?V4 | ?V5].
 -type config_flags()           :: frag_normal
                                 | frag_drop
                                 | frag_reasm
@@ -254,6 +271,16 @@
 
 -type table_feature_properties() :: [table_feature_property()].
 
+-type table_mod_property_eviction() :: other | importance | lifetime.
+-type vacancy_down() :: byte().
+-type vacancy_up() :: byte().
+-type vacancy() :: byte().
+-type table_mod_property() ::  {ofp_table_mod_prop_eviction,table_mod_property_eviction()}
+                             | {ofp_table_mod_prop_vacancy,vacancy_up(),vacancy_down(),vacancy()}
+                             | {ofp_table_mod_prop_experimenter,experimenter_id(),exp_type(),binary()}.
+
+-type table_mod_properties() :: [table_mod_property()].
+
 -type table_feature()            :: {table_id(),
                                      table_name(),
                                      metadata_match(),
@@ -289,6 +316,24 @@
 
 -type xid()                       :: non_neg_integer().
 
+%% Both ofp_multipart_request_flag() && ofp_multipart_reply_flag() enum to 'more'.
+-type multipart_flags() :: more.
+
+-type bundle_ctrl_type() :: open_request
+                          | open_reply
+                          | close_request
+                          | close_reply
+                          | commit_request
+                          | commit_reply
+                          | discard_request
+                          | discard_reply.
+
+-type bundle_flag() :: atomic
+                     | ordered.
+
+-type bundle_prop() :: {ofp_bundle_prop_experimenter,non_neg_integer(),non_neg_integer(),binary()}.
+-type bundle_properties() :: [bundle_prop()].
+
 %%%===================================================================
 %%% API
 %%%===================================================================
@@ -299,40 +344,46 @@
 %% @end
 %%--------------------------------------------------------------------
 -spec decode(ofp_message()) -> {atom(), xid(), proplists:proplist()}.
-decode(#ofp_message{ version = ?V4, xid = Xid, body = Body }) ->
-    {Name, Res} = of_msg_lib_v4:decode(Body),
-    {Name, Xid, Res};
-decode(#ofp_message{ version = Version, xid = Xid, body = Body })
-                                                    when Version < 4 ->
-    % decode first looks for protocol versions it knows about, older
-    % unsupported versions end up here.  The only unsupported versions
+    % Older unsupported versions end up here. The only unsupported versions
     % of OF we should get are the handshake hello messages.
+decode(#ofp_message{ version = Version, xid = Xid, body = Body }) when Version < ?V4 ->
     {Name, Res} = decode_hello(Body),
     {Name, Xid, Res};
+
+decode(#ofp_message{ version = Version, xid = Xid, body = Body }) when ( Version >= ?V4 ) and ( Version =< ?V5 )->
+    {Name, Res} = (lib_mod(Version)):decode(Body),
+    {Name, Xid, Res};
+
 decode(#ofp_message{ xid = Xid, body = Body }) ->
     % newer unsupported versions of OF protocol.  Assume that
     % the newest version of our OF parser can decode the hello message.
-    {Name, Res} = of_msg_lib_v4:decode(Body),
+    {Name, Res} = (lib_mod(4)):decode(Body),
     {Name, Xid, Res}.
 
+lib_mod(?V4) ->
+    of_msg_lib_v4;
+lib_mod(?V5) ->
+    of_msg_lib_v5.
+    
 %%--------------------------------------------------------------------
 %% @doc
 %% Create message
 %% @end
 %%--------------------------------------------------------------------
 -spec create_message(version(), term()) -> ofp_message().
-create_message(?V4, Body) ->
-    #ofp_message{ version = ?V4, body = Body }.
+create_message(Version,Body) ->
+    #ofp_message{ version = Version, body = Body }.
 
 %%--------------------------------------------------------------------
 %% @doc
 %% Create error
 %% @end
 %%--------------------------------------------------------------------
+
 -spec create_error(version(), atom(), atom()) -> ofp_message().
-create_error(?V4, Type, Code) ->
-    #ofp_message{ version = ?V4,
-                  body = of_msg_lib_v4:create_error(Type, Code) }.
+create_error(Version, Type, Code) ->
+    #ofp_message{ version = Version,
+                  body    = (lib_mod(Version)):create_error(Type,Code) }.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -340,9 +391,9 @@ create_error(?V4, Type, Code) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec hello(version(), supported_versions()) -> ofp_message().
-hello(?V4, SupportedVersions) ->
-    #ofp_message{ version = ?V4,
-                  body = of_msg_lib_v4:hello(SupportedVersions) }.
+hello(Version, SupportedVersions) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):hello(SupportedVersions) }.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -350,9 +401,9 @@ hello(?V4, SupportedVersions) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec echo_request(version(), binary()) -> ofp_message().
-echo_request(?V4, Data) ->
-    #ofp_message{ version = ?V4,
-                  body = of_msg_lib_v4:echo_request(Data) }.
+echo_request(Version, Data) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):echo_request(Data) }.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -360,9 +411,9 @@ echo_request(?V4, Data) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec get_features(version()) -> ofp_message().
-get_features(?V4) ->
-    #ofp_message{ version = ?V4,
-                  body = of_msg_lib_v4:get_features() }.
+get_features(Version) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):get_features() }.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -370,9 +421,9 @@ get_features(?V4) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec get_config(version()) -> ofp_message().
-get_config(?V4) ->
-    #ofp_message{ version = ?V4,
-                  body = of_msg_lib_v4:get_config() }.
+get_config(Version) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):get_config() }.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -380,9 +431,9 @@ get_config(?V4) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec set_config(version(), config_flags(), miss_send_len()) -> ofp_message().
-set_config(?V4, Flags, PacketInBytes) ->
-    #ofp_message{ version = ?V4,
-                  body = of_msg_lib_v4:set_config(Flags, PacketInBytes) }.
+set_config(Version, Flags, PacketInBytes) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):set_config(Flags, PacketInBytes) }.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -390,9 +441,9 @@ set_config(?V4, Flags, PacketInBytes) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec send_packet(version(), non_neg_integer()|binary(), port_no(), actions()) -> ofp_message().
-send_packet(?V4, Data, InPort, Actions) ->
-    #ofp_message{ version = ?V4,
-                  body = of_msg_lib_v4:send_packet(Data, InPort, Actions) }.
+send_packet(Version, Data, InPort, Actions) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):send_packet(Data, InPort, Actions) }.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -400,9 +451,9 @@ send_packet(?V4, Data, InPort, Actions) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec flow_add(version(), matches(), instructions(), opts()) -> ofp_message().
-flow_add(?V4, Matches, Instructions, Opts) ->
-    #ofp_message{ version = ?V4,
-                  body = of_msg_lib_v4:flow_add(Matches, Instructions, Opts) }.
+flow_add(Version, Matches, Instructions, Opts) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):flow_add(Matches, Instructions, Opts) }.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -410,9 +461,9 @@ flow_add(?V4, Matches, Instructions, Opts) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec flow_modify(version(), matches(), instructions(), opts()) -> ofp_message().
-flow_modify(?V4, Matches, Instructions, Opts) ->
-    #ofp_message{ version = ?V4,
-                  body = of_msg_lib_v4:flow_modify(Matches, Instructions, Opts) }.
+flow_modify(Version, Matches, Instructions, Opts) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):flow_modify(Matches, Instructions, Opts) }.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -420,9 +471,39 @@ flow_modify(?V4, Matches, Instructions, Opts) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec flow_delete(version(), matches(), opts()) -> ofp_message().
-flow_delete(?V4, Matches, Opts) ->
-    #ofp_message{ version = ?V4,
-                  body = of_msg_lib_v4:flow_delete(Matches, Opts) }.
+flow_delete(Version, Matches, Opts) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):flow_delete(Matches, Opts) }.
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Create a request to add a flow monitor 
+%% @end
+%%--------------------------------------------------------------------
+-spec flow_monitor_request_add(version(), multipart_flags(), matches(), non_neg_integer(),opts()) -> ofp_message().
+flow_monitor_request_add(Version,Flags,Matches,MonitorId,Opts) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):flow_monitor_request_add(Flags,Matches,MonitorId,Opts) }.
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Create a request to delete a flow monitor 
+%% @end
+%%--------------------------------------------------------------------
+-spec flow_monitor_request_delete(version(), multipart_flags(), matches(), non_neg_integer(),opts()) -> ofp_message().
+flow_monitor_request_delete(Version,Flags,Matches,MonitorId,Opts) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):flow_monitor_request_delete(Flags,Matches,MonitorId,Opts) }.
+
+%%-------------------------------------------------------------------
+%% @d3c
+%% Create a request to modify a flow monitor 
+%% @end
+%%--------------------------------------------------------------------
+-spec flow_monitor_request_modify(version(), multipart_flags(), matches(), non_neg_integer(),opts()) -> ofp_message().
+flow_monitor_request_modify(Version,Flags,Matches,MonitorId,Opts) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):flow_monitor_request_modify(Flags,Matches,MonitorId,Opts) }.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -430,9 +511,9 @@ flow_delete(?V4, Matches, Opts) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec group_add(version(), group_type(), group_id(), buckets()) -> ofp_message().
-group_add(?V4, Type, Id, Buckets) ->
-    #ofp_message{ version = ?V4,
-                  body = of_msg_lib_v4:group_add(Type, Id, Buckets) }.
+group_add(Version, Type, Id, Buckets) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):group_add(Type, Id, Buckets) }.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -440,9 +521,9 @@ group_add(?V4, Type, Id, Buckets) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec group_modify(version(), group_type(), group_id(), buckets()) -> ofp_message().
-group_modify(?V4, Type, Id, Buckets) ->
-    #ofp_message{ version = ?V4,
-                  body = of_msg_lib_v4:group_modify(Type, Id, Buckets) }.
+group_modify(Version, Type, Id, Buckets) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):group_modify(Type, Id, Buckets) }.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -450,9 +531,9 @@ group_modify(?V4, Type, Id, Buckets) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec group_delete(version(), group_type(), group_id()) -> ofp_message().
-group_delete(?V4, Type, Id) ->
-    #ofp_message{ version = ?V4,
-                  body = of_msg_lib_v4:group_delete(Type, Id) }.
+group_delete(Version, Type, Id) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):group_delete(Type, Id) }.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -460,9 +541,9 @@ group_delete(?V4, Type, Id) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec set_port_up(version(), mac_addr(), port_no()) -> ofp_message().
-set_port_up(?V4, Addr, PortNo) ->
-    #ofp_message{ version = ?V4,
-                  body = of_msg_lib_v4:set_port_up(Addr, PortNo) }.
+set_port_up(Version, Addr, PortNo) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):set_port_up(Addr, PortNo) }.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -470,9 +551,9 @@ set_port_up(?V4, Addr, PortNo) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec set_port_down(version(), mac_addr(), port_no()) -> ofp_message().
-set_port_down(?V4, Addr, PortNo) ->
-    #ofp_message{ version = ?V4,
-                  body = of_msg_lib_v4:set_port_down(Addr, PortNo) }.
+set_port_down(Version, Addr, PortNo) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):set_port_down(Addr, PortNo) }.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -480,9 +561,9 @@ set_port_down(?V4, Addr, PortNo) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec set_port_recv(version(), mac_addr(), port_no()) -> ofp_message().
-set_port_recv(?V4, Addr, PortNo) ->
-    #ofp_message{ version = ?V4,
-                  body = of_msg_lib_v4:set_port_recv(Addr, PortNo) }.
+set_port_recv(Version, Addr, PortNo) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):set_port_recv(Addr, PortNo) }.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -490,9 +571,9 @@ set_port_recv(?V4, Addr, PortNo) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec set_port_no_recv(version(), mac_addr(), port_no()) -> ofp_message().
-set_port_no_recv(?V4, Addr, PortNo) ->
-    #ofp_message{ version = ?V4,
-                  body = of_msg_lib_v4:set_port_no_recv(Addr, PortNo) }.
+set_port_no_recv(Version, Addr, PortNo) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):set_port_no_recv(Addr, PortNo) }.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -500,9 +581,9 @@ set_port_no_recv(?V4, Addr, PortNo) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec set_port_fwd(version(), mac_addr(), port_no()) -> ofp_message().
-set_port_fwd(?V4, Addr, PortNo) ->
-    #ofp_message{ version = ?V4,
-                  body = of_msg_lib_v4:set_port_fwd(Addr, PortNo) }.
+set_port_fwd(Version, Addr, PortNo) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):set_port_fwd(Addr, PortNo) }.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -510,9 +591,9 @@ set_port_fwd(?V4, Addr, PortNo) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec set_port_no_fwd(version(), mac_addr(), port_no()) -> ofp_message().
-set_port_no_fwd(?V4, Addr, PortNo) ->
-    #ofp_message{ version = ?V4,
-                  body = of_msg_lib_v4:set_port_no_fwd(Addr, PortNo) }.
+set_port_no_fwd(Version, Addr, PortNo) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):set_port_no_fwd(Addr, PortNo) }.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -521,9 +602,31 @@ set_port_no_fwd(?V4, Addr, PortNo) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec set_port_packet_in(version(), mac_addr(), port_no()) -> ofp_message().
-set_port_packet_in(?V4, Addr, PortNo) ->
-    #ofp_message{ version = ?V4,
-                  body = of_msg_lib_v4:set_port_packet_in(Addr, PortNo) }.
+set_port_packet_in(Version, Addr, PortNo) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):set_port_packet_in(Addr, PortNo) }.
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Create a request to set table modification eviction
+%% a table miss.
+%% @end
+%%--------------------------------------------------------------------
+-spec set_table_mod_eviction(version(),table_mod_properties(),opts()) -> #ofp_message{}.
+set_table_mod_eviction(Version,Properties,Opts) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):set_table_mod_eviction(Properties,Opts)}.
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Create a request to set table modification vacancy events
+%% a table miss.
+%% @end
+%%--------------------------------------------------------------------
+-spec set_table_mod_vacancy_events(version(),table_mod_properties(),opts()) -> #ofp_message{}.
+set_table_mod_vacancy_events(Version,Properties,Opts) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):set_table_mod_vacancy_events(Properties,Opts)}.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -532,9 +635,9 @@ set_port_packet_in(?V4, Addr, PortNo) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec set_port_no_packet_in(version(), mac_addr(), port_no()) -> ofp_message().
-set_port_no_packet_in(?V4, Addr, PortNo) ->
-    #ofp_message{ version = ?V4,
-                  body = of_msg_lib_v4:set_port_no_packet_in(Addr, PortNo) }.
+set_port_no_packet_in(Version, Addr, PortNo) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):set_port_no_packet_in(Addr, PortNo) }.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -543,9 +646,9 @@ set_port_no_packet_in(?V4, Addr, PortNo) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec get_description(version()) -> ofp_message().
-get_description(?V4) ->
-    #ofp_message{ version = ?V4,
-                  body = of_msg_lib_v4:get_description() }.
+get_description(Version) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):get_description() }.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -553,9 +656,9 @@ get_description(?V4) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec get_flow_statistics(version(), table_id(), matches(), opts()) -> ofp_message().
-get_flow_statistics(?V4, TableId, Matches, Opts) ->
-    #ofp_message{ version = ?V4,
-                  body = of_msg_lib_v4:get_flow_statistics(TableId, Matches, Opts) }.
+get_flow_statistics(Version, TableId, Matches, Opts) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):get_flow_statistics(TableId, Matches, Opts) }.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -563,9 +666,9 @@ get_flow_statistics(?V4, TableId, Matches, Opts) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec get_aggregate_statistics(version(), table_id(), matches(), opts()) -> ofp_message().
-get_aggregate_statistics(?V4, TableId, Matches, Opts) ->
-    #ofp_message{ version = ?V4,
-                  body = of_msg_lib_v4:get_aggregate_statistics(TableId, Matches, Opts) }.
+get_aggregate_statistics(Version, TableId, Matches, Opts) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):get_aggregate_statistics(TableId, Matches, Opts) }.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -573,9 +676,9 @@ get_aggregate_statistics(?V4, TableId, Matches, Opts) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec get_table_stats(version()) -> ofp_message().
-get_table_stats(?V4) ->
-    #ofp_message{ version = ?V4,
-                  body = of_msg_lib_v4:get_table_stats() }.
+get_table_stats(Version) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):get_table_stats() }.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -583,9 +686,29 @@ get_table_stats(?V4) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec get_table_features(version()) -> ofp_message().
-get_table_features(?V4) ->
-    #ofp_message{ version = ?V4,
-                  body = of_msg_lib_v4:get_table_features() }.
+get_table_features(Version) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):get_table_features() }.
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Create a request to get table description
+%% @end
+%%--------------------------------------------------------------------
+-spec get_table_desc(version(),multipart_flags()) -> #ofp_message{}.
+get_table_desc(Version,Flags) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):get_table_desc(Flags)}.
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Create a request to get queue description
+%% @end
+%%--------------------------------------------------------------------
+-spec get_queue_desc(version(),multipart_flags(),port_no(),queue_id()) -> #ofp_message{}.
+get_queue_desc(Version,Flags,PortNo,QueueId) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):get_queue_desc(Flags,PortNo,QueueId)}.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -593,9 +716,9 @@ get_table_features(?V4) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec set_table_features(version(), table_features()) -> ofp_message().
-set_table_features(?V4, Features) ->
-    #ofp_message{ version = ?V4,
-                  body = of_msg_lib_v4:set_table_features(Features) }.
+set_table_features(Version, Features) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):set_table_features(Features) }.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -603,9 +726,9 @@ set_table_features(?V4, Features) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec get_port_descriptions(version()) -> ofp_message().
-get_port_descriptions(?V4) ->
-    #ofp_message{ version = ?V4,
-                  body = of_msg_lib_v4:get_port_descriptions() }.
+get_port_descriptions(Version) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):get_port_descriptions() }.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -613,9 +736,9 @@ get_port_descriptions(?V4) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec get_port_statistics(version(), port_no()) -> ofp_message().
-get_port_statistics(?V4, Port) ->
-    #ofp_message{ version = ?V4,
-                  body = of_msg_lib_v4:get_port_statistics(Port) }.
+get_port_statistics(Version, Port) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):get_port_statistics(Port) }.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -623,9 +746,9 @@ get_port_statistics(?V4, Port) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec get_queue_statistics(version(), port_no(), queue_id()) -> ofp_message().
-get_queue_statistics(?V4, PortNo, QueueId) ->
-    #ofp_message{ version = ?V4,
-                  body = of_msg_lib_v4:get_queue_statistics(PortNo, QueueId) }.
+get_queue_statistics(Version, PortNo, QueueId) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):get_queue_statistics(PortNo, QueueId) }.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -633,9 +756,9 @@ get_queue_statistics(?V4, PortNo, QueueId) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec get_group_statistics(version(), group_id()) -> ofp_message().
-get_group_statistics(?V4, GroupId) ->
-    #ofp_message{ version = ?V4,
-                  body = of_msg_lib_v4:get_group_statistics(GroupId) }.
+get_group_statistics(Version, GroupId) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):get_group_statistics(GroupId) }.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -643,9 +766,9 @@ get_group_statistics(?V4, GroupId) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec get_group_descriptions(version()) -> ofp_message().
-get_group_descriptions(?V4) ->
-    #ofp_message{ version = ?V4,
-                  body = of_msg_lib_v4:get_group_descriptions() }.
+get_group_descriptions(Version) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):get_group_descriptions() }.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -653,9 +776,9 @@ get_group_descriptions(?V4) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec get_group_features(version()) -> ofp_message().
-get_group_features(?V4) ->
-    #ofp_message{ version = ?V4,
-                  body = of_msg_lib_v4:get_group_features() }.
+get_group_features(Version) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):get_group_features() }.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -663,9 +786,19 @@ get_group_features(?V4) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec get_meter_stats(version(), meter_id()) -> ofp_message().
-get_meter_stats(?V4, MeterId) ->
-    #ofp_message{ version = ?V4,
-                  body = of_msg_lib_v4:get_meter_stats(MeterId) }.
+get_meter_stats(Version, MeterId) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):get_meter_stats(MeterId) }.
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Create a request to get meter statistics.
+%% @end
+%%--------------------------------------------------------------------
+-spec get_meter_stats(version(), meter_id(), multipart_flags()) -> ofp_message().
+get_meter_stats(Version, MeterId, Flags) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):get_meter_stats(MeterId,Flags) }.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -673,9 +806,19 @@ get_meter_stats(?V4, MeterId) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec get_meter_configuration(version(), meter_id()) -> ofp_message().
-get_meter_configuration(?V4, MeterId) ->
-    #ofp_message{ version = ?V4,
-                  body = of_msg_lib_v4:get_meter_configuration(MeterId) }.
+get_meter_configuration(Version, MeterId) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):get_meter_configuration(MeterId) }.
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Create a request to get meter configuration.
+%% @end
+%%--------------------------------------------------------------------
+-spec get_meter_configuration(version(), meter_id(), multipart_flags()) -> ofp_message().
+get_meter_configuration(Version, MeterId, Flags) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):get_meter_configuration(MeterId,Flags) }.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -683,9 +826,19 @@ get_meter_configuration(?V4, MeterId) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec get_meter_features(version()) -> ofp_message().
-get_meter_features(?V4) ->
-    #ofp_message{ version = ?V4,
-                  body = of_msg_lib_v4:get_meter_features() }.
+get_meter_features(Version) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):get_meter_features() }.
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Create a request to get meter features.
+%% @end
+%%--------------------------------------------------------------------
+-spec get_meter_features(version(), multipart_flags()) -> ofp_message().
+get_meter_features(Version,Flags) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):get_meter_features(Flags) }.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -693,9 +846,19 @@ get_meter_features(?V4) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec experimenter(version(), experimenter_id(), exp_type(), binary()) -> ofp_message().
-experimenter(?V4, ExpId, Type, Data) ->
-    #ofp_message{ version = ?V4,
-                  body = of_msg_lib_v4:experimenter(ExpId, Type, Data) }.
+experimenter(Version, ExpId, Type, Data) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):experimenter(ExpId, Type, Data) }.
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Create an experimenter request.
+%% @end
+%%--------------------------------------------------------------------
+-spec experimenter(version(), multipart_flags(), experimenter_id(), exp_type(), binary()) -> ofp_message().
+experimenter(Version, Flags, ExpId, Type, Data) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):experimenter(Flags, ExpId, Type, Data) }.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -703,9 +866,9 @@ experimenter(?V4, ExpId, Type, Data) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec barrier(version()) -> ofp_message().
-barrier(?V4) ->
-    #ofp_message{ version = ?V4,
-                  body = of_msg_lib_v4:barrier() }.
+barrier(Version) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):barrier() }.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -713,9 +876,9 @@ barrier(?V4) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec get_queue_configuration(version(), port_no()) -> ofp_message().
-get_queue_configuration(?V4, PortNo) ->
-    #ofp_message{ version = ?V4,
-                  body = of_msg_lib_v4:get_queue_configuration(PortNo) }.
+get_queue_configuration(Version, PortNo) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):get_queue_configuration(PortNo) }.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -723,9 +886,9 @@ get_queue_configuration(?V4, PortNo) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec set_role(version(), role(), generation_id()) -> ofp_message().
-set_role(?V4, Role, GenerationId) ->
-    #ofp_message{ version = ?V4,
-                  body = of_msg_lib_v4:set_role(Role, GenerationId) }.
+set_role(Version, Role, GenerationId) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):set_role(Role, GenerationId) }.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -734,9 +897,9 @@ set_role(?V4, Role, GenerationId) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec get_async_configuration(version()) -> ofp_message().
-get_async_configuration(?V4) ->
-    #ofp_message{ version = ?V4,
-                  body = of_msg_lib_v4:get_async_configuration() }.
+get_async_configuration(Version) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):get_async_configuration() }.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -745,11 +908,11 @@ get_async_configuration(?V4) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec set_async_configuration(version(), packet_in_mask(), port_status_mask(), flow_removed_mask()) -> ofp_message().
-set_async_configuration(?V4, PacketInMask, PortStatusMask, FlowRemovedMask) ->
-    #ofp_message{ version = ?V4,
-                  body = of_msg_lib_v4:set_async_configuration(PacketInMask,
-                                                               PortStatusMask,
-                                                               FlowRemovedMask) }.
+set_async_configuration(Version, PacketInMask, PortStatusMask, FlowRemovedMask) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):set_async_configuration(PacketInMask,
+                                                                    PortStatusMask,
+                                                                    FlowRemovedMask) }.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -757,9 +920,9 @@ set_async_configuration(?V4, PacketInMask, PortStatusMask, FlowRemovedMask) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec meter_add(version(), meter_flags(), meter_id(), bands()) -> ofp_message().
-meter_add(?V4, Flags, MeterId, Bands) ->
-    #ofp_message{ version = ?V4,
-                  body = of_msg_lib_v4:meter_add(Flags, MeterId, Bands) }.
+meter_add(Version, Flags, MeterId, Bands) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):meter_add(Flags, MeterId, Bands) }.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -767,9 +930,9 @@ meter_add(?V4, Flags, MeterId, Bands) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec meter_modify(version(), meter_flags(), meter_id(), bands()) -> ofp_message().
-meter_modify(?V4, Flags, MeterId, Bands) ->
-    #ofp_message{ version = ?V4,
-                  body = of_msg_lib_v4:meter_modify(Flags, MeterId, Bands) }.
+meter_modify(Version, Flags, MeterId, Bands) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):meter_modify(Flags, MeterId, Bands) }.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -777,9 +940,39 @@ meter_modify(?V4, Flags, MeterId, Bands) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec meter_delete(version(), meter_id()) -> ofp_message().
-meter_delete(?V4, MeterId) ->
-    #ofp_message{ version = ?V4,
-                  body = of_msg_lib_v4:meter_delete(MeterId) }.
+meter_delete(Version, MeterId) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):meter_delete(MeterId) }.
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Create a request to forward a request
+%% @end
+%%--------------------------------------------------------------------
+-spec requestforward(version(), ofp_message())  -> ofp_message().
+requestforward(Version,Msg) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):requestforward(Msg) }.
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Create a request for a bundle ctrl message
+%% @end
+%%--------------------------------------------------------------------
+-spec bundle_ctrl_msg(version(),non_neg_integer(),bundle_ctrl_type(),bundle_flag(),bundle_properties())  -> ofp_message().
+bundle_ctrl_msg(Version,BundleId,CtrlType,Flag,Properties) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):bundle_ctrl_msg(BundleId,CtrlType,Flag,Properties) }.
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Create a request for a bundle add message
+%% @end
+%%--------------------------------------------------------------------
+-spec bundle_add_msg(version(),non_neg_integer(),bundle_flag(),ofp_message(),bundle_properties())  -> ofp_message().
+bundle_add_msg(Version,BundleId,Flag,Msg,Properties) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):bundle_add_msg(BundleId,Flag,Msg,Properties) }.
 
 %%%===================================================================
 %%% Internal functions
