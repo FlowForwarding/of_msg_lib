@@ -53,6 +53,14 @@
          set_port_no_fwd/3,
          set_port_packet_in/3,
          set_port_no_packet_in/3,
+         set_port_up/4,
+         set_port_down/4,
+         set_port_recv/4,
+         set_port_no_recv/4,
+         set_port_fwd/4,
+         set_port_no_fwd/4,
+         set_port_packet_in/4,
+         set_port_no_packet_in/4,
          get_table_desc/2,
          get_queue_desc/4,
          set_table_mod_eviction/3,
@@ -334,6 +342,9 @@
 -type bundle_prop() :: {ofp_bundle_prop_experimenter,non_neg_integer(),non_neg_integer(),binary()}.
 -type bundle_properties() :: [bundle_prop()].
 
+-type port_property() :: atom().
+-type port_properties() :: [] | [port_property()].
+
 %%%===================================================================
 %%% API
 %%%===================================================================
@@ -608,6 +619,99 @@ set_port_packet_in(Version, Addr, PortNo) ->
 
 %%--------------------------------------------------------------------
 %% @doc
+%% Create a request to set a port to NOT send packet_in messages in
+%% case of a table miss.
+%% @end
+%%--------------------------------------------------------------------
+-spec set_port_no_packet_in(version(), mac_addr(), port_no()) -> ofp_message().
+set_port_no_packet_in(Version, Addr, PortNo) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):set_port_no_packet_in(Addr, PortNo) }.
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Create a request to change the administrative state of a port to UP.
+%% @end
+%%--------------------------------------------------------------------
+-spec set_port_up(version(), mac_addr(), port_no(), port_properties()) -> ofp_message().
+set_port_up(Version, Addr, PortNo, Properties) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):set_port_up(Addr, PortNo, Properties) }.
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Create a request to change the administrative state of a port to DOWN.
+%% @end
+%%--------------------------------------------------------------------
+-spec set_port_down(version(), mac_addr(), port_no(), port_properties()) -> ofp_message().
+set_port_down(Version, Addr, PortNo, Properties) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):set_port_down(Addr, PortNo, Properties) }.
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Create a request to set a port to accept incoming packets.
+%% @end
+%%--------------------------------------------------------------------
+-spec set_port_recv(version(), mac_addr(), port_no(), port_properties()) -> ofp_message().
+set_port_recv(Version, Addr, PortNo, Properties) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):set_port_recv(Addr, PortNo, Properties) }.
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Create a request to set a port to NOT accept incoming packets.
+%% @end
+%%--------------------------------------------------------------------
+-spec set_port_no_recv(version(), mac_addr(), port_no(), port_properties()) -> ofp_message().
+set_port_no_recv(Version, Addr, PortNo, Properties) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):set_port_no_recv(Addr, PortNo, Properties) }.
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Create a request to set a port to allow sending outgoing packets
+%% @end
+%%--------------------------------------------------------------------
+-spec set_port_fwd(version(), mac_addr(), port_no(), port_properties()) -> ofp_message().
+set_port_fwd(Version, Addr, PortNo, Properties) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):set_port_fwd(Addr, PortNo, Properties) }.
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Create a request to set a port to disallow sending outgoing packets.
+%% @end
+%%--------------------------------------------------------------------
+-spec set_port_no_fwd(version(), mac_addr(), port_no(), port_properties()) -> ofp_message().
+set_port_no_fwd(Version, Addr, PortNo, Properties) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):set_port_no_fwd(Addr, PortNo, Properties) }.
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Create a request to set a port to send packet_in messages in case of
+%% a table miss.
+%% @end
+%%--------------------------------------------------------------------
+-spec set_port_packet_in(version(), mac_addr(), port_no(), port_properties()) -> ofp_message().
+set_port_packet_in(Version, Addr, PortNo, Properties) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):set_port_packet_in(Addr, PortNo, Properties) }.
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Create a request to set a port to NOT send packet_in messages in
+%% case of a table miss.
+%% @end
+%%--------------------------------------------------------------------
+-spec set_port_no_packet_in(version(), mac_addr(), port_no(), port_properties()) -> ofp_message().
+set_port_no_packet_in(Version, Addr, PortNo, Properties) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):set_port_no_packet_in(Addr, PortNo, Properties) }.
+
+%%--------------------------------------------------------------------
+%% @doc
 %% Create a request to set table modification eviction
 %% a table miss.
 %% @end
@@ -627,17 +731,6 @@ set_table_mod_eviction(Version,Properties,Opts) ->
 set_table_mod_vacancy_events(Version,Properties,Opts) ->
     #ofp_message{ version = Version,
                   body = (lib_mod(Version)):set_table_mod_vacancy_events(Properties,Opts)}.
-
-%%--------------------------------------------------------------------
-%% @doc
-%% Create a request to set a port to NOT send packet_in messages in
-%% case of a table miss.
-%% @end
-%%--------------------------------------------------------------------
--spec set_port_no_packet_in(version(), mac_addr(), port_no()) -> ofp_message().
-set_port_no_packet_in(Version, Addr, PortNo) ->
-    #ofp_message{ version = Version,
-                  body = (lib_mod(Version)):set_port_no_packet_in(Addr, PortNo) }.
 
 %%--------------------------------------------------------------------
 %% @doc

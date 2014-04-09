@@ -1220,35 +1220,35 @@ mk_bucket({Weight, PortNo, GroupId, Actions}) ->
        actions = mk_actions(Actions)
       }.
 
-mk_table_mod_property({ofp_table_mod_prop_eviction,Flags}) ->
+mk_table_mod_property({table_mod_prop_eviction,Flags}) ->
     #ofp_table_mod_prop_eviction{ flags = Flags };
-mk_table_mod_property({ofp_table_mod_prop_vacancy,VacancyDown,VacancyUp,Vacancy}) ->
+mk_table_mod_property({table_mod_prop_vacancy,VacancyDown,VacancyUp,Vacancy}) ->
     #ofp_table_mod_prop_vacancy{ vacancy_down = VacancyDown,
                                  vacancy_up = VacancyUp,
                                  vacancy = Vacancy
                                 };
-mk_table_mod_property({ofp_table_mod_prop_experimenter,Experimenter,ExpType,Data}) ->
+mk_table_mod_property({table_mod_prop_experimenter,Experimenter,ExpType,Data}) ->
     #ofp_table_mod_prop_experimenter{ experimenter = Experimenter,
                                       exp_type = ExpType,
                                       data = Data
                                     }.
 
-mk_port_mod_properties({ofp_port_mod_prop_ethernet,Advertise}) ->
+mk_port_mod_properties({port_mod_prop_ethernet,Advertise}) ->
     #ofp_port_mod_prop_ethernet{ advertise = Advertise };
-mk_port_mod_properties({ofp_port_mod_prop_optical,Configure,FreqLmda,FlOffset,GridSpan,TxPwr}) ->
+mk_port_mod_properties({port_mod_prop_optical,Configure,FreqLmda,FlOffset,GridSpan,TxPwr}) ->
     #ofp_port_mod_prop_optical{ configure = Configure, 
                                 freq_lmda = FreqLmda,
                                 fl_offset = FlOffset,
                                 grid_span = GridSpan,
                                 tx_pwr = TxPwr
                               };
-mk_port_mod_properties({ofp_port_mod_prop_experimenter,Experimenter,ExpType,Data}) ->
+mk_port_mod_properties({port_mod_prop_experimenter,Experimenter,ExpType,Data}) ->
     #ofp_port_mod_prop_experimenter{experimenter = Experimenter,
                                     exp_type = ExpType,
                                     data = Data
                                     }.
 
-mk_bundle_props({ofp_bundle_prop_experimenter,Experimenter,ExpType,Data}) ->
+mk_bundle_props({bundle_prop_experimenter,Experimenter,ExpType,Data}) ->
     #ofp_bundle_prop_experimenter{
       experimenter = Experimenter,
       exp_type = ExpType,
@@ -1912,7 +1912,15 @@ dec_queue_stats(#ofp_queue_stats{
      {tx_errors, Tx_errors},
      {duration_sec, Duration_sec},
      {duration_nsec, Duration_nsec},
-     {properties, [ dec_queue_prop(P) || P <- Properties ]}].
+     {properties, [ dec_queue_stats_prop(P) || P <- Properties ]}].
+
+dec_queue_stats_prop(#ofp_queue_stats_prop_experimenter{ experimenter = Experimenter,
+                                                         exp_type=ExpType,
+                                                         data=Data}) ->
+    [{experimenter,Experimenter},
+     {exp_type,ExpType},
+     {data,Data}
+    ].
 
 dec_port(#ofp_port{ port_no = PortNr,
                     hw_addr = HwAddr,
