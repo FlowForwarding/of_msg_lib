@@ -769,21 +769,21 @@ required(ipv4_src) ->
 required(ipv4_dst) ->
     {eth_type,<<16#800:16>>};
 required(tcp_src) ->
-    {ip_proto,6};
+    {ip_proto,<<6:8>>};
 required(tcp_dst) ->
-    {ip_proto,6};
+    {ip_proto,<<6:8>>};
 required(udp_src) ->
-    {ip_proto,17};
+    {ip_proto,<<17:8>>};
 required(udp_dst) ->
-    {ip_proto,17};
+    {ip_proto,<<17:8>>};
 required(sctp_src) ->
-    {ip_proto,132};
+    {ip_proto,<<132:8>>};
 required(sctp_dst) ->
-    {ip_proto,132};
+    {ip_proto,<<132:8>>};
 required(icmpv4_type) ->
-    {ip_proto,1};
+    {ip_proto,<<1:8>>};
 required(icmpv4_code) ->
-    {ip_proto,1};
+    {ip_proto,<<1:8>>};
 required(arp_op) ->
     {eth_type,<<16#806:16>>};
 required(arp_spa) ->
@@ -801,9 +801,9 @@ required(ipv6_dst) ->
 required(ipv6_flabel) ->
     {eth_type,<<16#86dd:16>>};
 required(icmpv6_type) ->
-    {ip_proto,58};
+    {ip_proto,<<58:8>>};
 required(icmpv6_code) ->
-    {ip_proto,58};
+    {ip_proto,<<58:8>>};
 required(ipv6_nd_target) ->
     [{icmpv6_type,135},{icmpv6_type,136}];
 required(ipv6_nd_sll) ->

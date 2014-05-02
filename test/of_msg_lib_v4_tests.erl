@@ -35,6 +35,7 @@ of_msg_lib_test_() ->
      {"Set config", fun set_config/0},
      {"Send packet", fun send_packet/0},
      {"Flow add", fun flow_add/0},
+     {"Flow add", fun flow_add2/0},
      {"Flow modify", fun flow_modify/0},
      {"flow delete", fun flow_delete/0},
      {"group add", fun group_add/0},
@@ -153,6 +154,22 @@ flow_add() ->
                               [{in_port,6}, {eth_dst,<<0,0,0,0,0,8>>}],
                               [{write_actions,[{group,3}]}],
                               [{table_id,1}]),
+    ?assertEqual(Msg, encode_decode(?V4, Msg)).
+
+flow_add2() ->
+    Matches = [{in_port, <<1:32>>},
+               {eth_type, 2048},
+               {ip_proto, <<17:8>>},
+               {ipv4_src, <<1,2,3,4>>},
+               {udp_src, <<53:16>>}],
+    Instructions = [{apply_actions, [{output, 2, no_buffer},
+                                     {output, controller, no_buffer}]}],
+    Opts = [{table_id, 0},
+            {priority, 100},
+            {idle_timeout, 0},
+            {cookie, <<0,0,0,0,0,0,0,10>>},
+            {cookie_mask, <<0,0,0,0,0,0,0,0>>}],
+    Msg = of_msg_lib:flow_add(?V4, Matches, Instructions, Opts),
     ?assertEqual(Msg, encode_decode(?V4, Msg)).
 
 flow_modify() ->
