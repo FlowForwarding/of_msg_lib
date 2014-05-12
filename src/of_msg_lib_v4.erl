@@ -614,7 +614,7 @@ add_required_fields(Field, Acc) ->
 		true ->
 		    Acc;
 		false ->
-		    throw({missing_match,M,Acc})
+		    throw({missing_match,M,Field,Acc})
 	    end;
 	none ->
 	    Acc
