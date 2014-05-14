@@ -892,7 +892,7 @@ vlan_vid(Val) when is_integer(Val) ->
     vlan_vid(<<Val:13>>);
 vlan_vid(Val) ->
     #ofp_field{name = vlan_vid,
-               value = <<Val:13>>}.
+               value = Val}.
 vlan_vid(Val, Mask) when is_integer(Val), is_integer(Mask) ->
     vlan_vid(<<Val:13>>, <<Mask:13>>);
 vlan_vid(Val, Mask) ->
@@ -1169,8 +1169,8 @@ mk_action(copy_ttl_out) ->
 mk_action(copy_ttl_in) ->
     #ofp_action_copy_ttl_in{};
 
-mk_action(push_vlan) ->
-    #ofp_action_push_vlan{};
+mk_action({push_vlan, EtherType}) ->
+    #ofp_action_push_vlan{ethertype = EtherType};
 
 mk_action(pop_vlan) ->
     #ofp_action_pop_vlan{};

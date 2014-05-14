@@ -1047,8 +1047,8 @@ mk_action(copy_ttl_out) ->
 mk_action(copy_ttl_in) ->
     #ofp_action_copy_ttl_in{};
 
-mk_action(push_vlan) ->
-    #ofp_action_push_vlan{};
+mk_action({push_vlan, EtherType}) ->
+    #ofp_action_push_vlan{ethertype = EtherType};
 
 mk_action(pop_vlan) ->
     #ofp_action_pop_vlan{};
