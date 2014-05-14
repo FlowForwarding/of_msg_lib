@@ -768,7 +768,9 @@ vlan_vid(Val) when is_integer(Val) ->
     vlan_vid(<<Val:13>>);
 vlan_vid(Val) ->
     #ofp_field{name = vlan_vid,
-               value = <<Val:13>>}.
+               value = Val}.
+% XXX This code is wrong: vlan_vid must be either the vlan_vid or
+% a mask, not both at the same time.
 vlan_vid(Val, Mask) when is_integer(Val), is_integer(Mask) ->
     vlan_vid(<<Val:13>>, <<Mask:13>>);
 vlan_vid(Val, Mask) ->
