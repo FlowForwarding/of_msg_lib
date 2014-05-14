@@ -32,6 +32,7 @@
          decode/1,
          hello/2,
          echo_request/2,
+         echo_reply/3,
          get_features/1,
          get_config/1,
          set_config/3,
@@ -415,6 +416,16 @@ hello(Version, SupportedVersions) ->
 echo_request(Version, Data) ->
     #ofp_message{ version = Version,
                   body = (lib_mod(Version)):echo_request(Data) }.
+
+%%--------------------------------------------------------------------
+%% @doc
+%% Create an echo reply.
+%% @end
+%%--------------------------------------------------------------------
+-spec echo_reply(version(), xid(), binary()) -> ofp_message().
+echo_reply(Version, Xid, Data) ->
+    #ofp_message{ version = Version, xid = Xid,
+                  body = (lib_mod(Version)):echo_reply(Data) }.
 
 %%--------------------------------------------------------------------
 %% @doc

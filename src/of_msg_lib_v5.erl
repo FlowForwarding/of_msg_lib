@@ -22,6 +22,7 @@
 -export([create_error/2,
          hello/1, 
          echo_request/1,
+         echo_reply/1,
          get_features/0,
          get_config/0,
          set_config/2,
@@ -137,6 +138,10 @@ hello(Versions) ->
 %% echo request
 echo_request(Data) ->
     #ofp_echo_request{data = Data}.
+
+%% echo reply
+echo_reply(Data) ->
+    #ofp_echo_reply{data = Data}.
 
 %% Get basic information from the switch. Used at first connection to get
 %% DataPathId and capabilities.
