@@ -65,7 +65,9 @@
          meter_add/3,
          meter_modify/3,
          meter_delete/1,
-         decode/1]).
+         optical_transport_port_desc_request/2,
+         decode/1
+         ]).
 
 -export([in_port/1,
          in_phy_port/1,
@@ -1099,6 +1101,9 @@ mk_bucket({Weight, PortNo, GroupId, Actions}) ->
        watch_group = GroupId,
        actions = mk_actions(Actions)}.
 
+optical_transport_port_desc_request(Experimenter,ExpType) ->
+    #ofp_experimenter_request{experimenter = Experimenter, exp_type = ExpType}.
+
 %%%=========================================================================
 %%% Decode Normal Replies
 
@@ -1343,7 +1348,11 @@ decode(#ofp_experimenter{
          }) ->
     {experimenter, [{experimenter, Experimenter},
                     {exp_type, Exp_type},
-                    {data, Data}]}.
+                    {data, Data}]};
+
+decode(#ofp_port_desc_reply_v6{ flags = Flags, body = Ports }) ->
+    {port_desc_reply_v6, [{flags, Flags},
+                       {ports, [dec_port_v6(Port)|| Port <- Ports]}]}.
 
 %%% ===========================================================================
 dec_packet_queues(Queues) ->
@@ -1719,6 +1728,50 @@ dec_port(#ofp_port{
      {peer, Peer},
      {curr_speed, Curr_speed},
      {max_speed, Max_speed}].
+
+dec_port_v6(#ofp_port_v6{ port_no = PortNr,
+                    hw_addr = HwAddr,
+                    name = Name,
+                    config = Config,
+                    state = State,
+                    properties = Properties }) ->
+    [{port_no, PortNr},
+     {hw_addr, HwAddr},
+     {name, Name},
+     {config, Config},
+     {state, State},
+     {properties, [ dec_port_desc_property_v6(P) || P <- Properties ]}].
+
+dec_port_desc_property_v6(#ofp_port_desc_prop_optical_transport{ 
+                            type = T,
+                            port_signal_type = PST,
+                            reserved = R,
+                            features = F }) ->
+    [{type,T},
+     {port_signal_type,PST},
+     {reserved,R},
+     {features,[ dec_optical_transport_port_features(Fi) || Fi <- F]}].
+
+dec_optical_transport_port_features(#ofp_port_optical_transport_application_code{
+                                        feature_type=FT,
+                                        oic_type=OICT,
+                                        app_code=AC}) ->
+    [{feature_type,FT},
+     {oic_type,OICT},
+     {app_code,AC}];
+dec_optical_transport_port_features(#ofp_port_optical_transport_layer_stack{
+                                        feature_type=FT,
+                                        value=V}) ->
+    [{feature_type,FT},
+     {value,[ dec_optical_transport_port_layer_entries(Vi) || Vi <- V ]}].
+
+dec_optical_transport_port_layer_entries(#ofp_port_optical_transport_layer_entry{
+                                            layer_class = L,
+                                            signal_type = S,
+                                            adaptation  = A}) ->
+    [{layer_class,L},
+     {signal_type,S},
+     {adaptation,A}].
 
 dec_group_stats(#ofp_group_stats{
                    group_id = Group_id,

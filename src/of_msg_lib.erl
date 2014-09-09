@@ -96,7 +96,8 @@
          meter_delete/2,
          requestforward/2,
          bundle_ctrl_msg/5,
-         bundle_add_msg/5
+         bundle_add_msg/5,
+         optical_transport_port_desc_request/3
          ]).
 
 -include_lib("of_protocol/include/of_protocol.hrl").
@@ -1078,9 +1079,21 @@ bundle_add_msg(Version,BundleId,Flag,Msg,Properties) ->
     #ofp_message{ version = Version,
                   body = (lib_mod(Version)):bundle_add_msg(BundleId,Flag,Msg,Properties) }.
 
+%%--------------------------------------------------------------------
+%% @doc
+%% Create a request for optical port desc
+%% @end
+%%--------------------------------------------------------------------
+optical_transport_port_desc_request(Version,Experimenter,ExpType) ->
+    #ofp_message{ version = Version,
+                  body = (lib_mod(Version)):optical_transport_port_desc_request(Experimenter,ExpType) }.
+
+
+
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
 
 decode_hello(#ofp_hello{}) ->
     {hello, []}.
+
