@@ -97,7 +97,7 @@
          requestforward/2,
          bundle_ctrl_msg/5,
          bundle_add_msg/5,
-         optical_transport_port_desc_request/3
+         oe_get_port_descriptions/1
          ]).
 
 -include_lib("of_protocol/include/of_protocol.hrl").
@@ -1084,9 +1084,9 @@ bundle_add_msg(Version,BundleId,Flag,Msg,Properties) ->
 %% Create a request for optical port desc
 %% @end
 %%--------------------------------------------------------------------
-optical_transport_port_desc_request(Version,Experimenter,ExpType) ->
+oe_get_port_descriptions(Version) ->
     #ofp_message{ version = Version,
-                  body = (lib_mod(Version)):optical_transport_port_desc_request(Experimenter,ExpType) }.
+                  body = (lib_mod(Version)):oe_get_port_descriptions() }.
 
 
 

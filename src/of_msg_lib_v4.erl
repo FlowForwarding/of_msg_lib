@@ -65,7 +65,7 @@
          meter_add/3,
          meter_modify/3,
          meter_delete/1,
-         optical_transport_port_desc_request/2,
+         oe_get_port_descriptions/0,
          decode/1
          ]).
 
@@ -1101,8 +1101,10 @@ mk_bucket({Weight, PortNo, GroupId, Actions}) ->
        watch_group = GroupId,
        actions = mk_actions(Actions)}.
 
-optical_transport_port_desc_request(Experimenter,ExpType) ->
-    #ofp_experimenter_request{experimenter = Experimenter, exp_type = ExpType}.
+oe_get_port_descriptions() ->
+    #ofp_experimenter_request{experimenter = ?INFOBLOX_EXPERIMENTER,
+                              exp_type = port_desc,
+                              data = <<>>}.
 
 %%%=========================================================================
 %%% Decode Normal Replies
