@@ -108,7 +108,11 @@
          mpls_bos/1,
          pbb_isid/1, pbb_isid/2,
          tunnel_id/1, tunnel_id/2,
-         ipv6_exthdr/1, ipv6_exthdr/2
+         ipv6_exthdr/1, ipv6_exthdr/2,
+         odu_sigtype/1,
+         odu_sigid/1,
+         och_sigtype/1,
+         och_sigid/1
         ]).
 
 -include_lib("of_protocol/include/of_protocol.hrl").
@@ -980,6 +984,48 @@ ipv6_exthdr(Val, Mask) when bit_size(Val) == 9, bit_size(Mask) == 9 ->
                value = Val,
                has_mask = true,
                mask = Mask}.
+
+odu_sigtype(Value) ->
+  #ofp_oxm_experimenter{
+    body = #ofp_field{
+            name = odu_sigtype,
+            value = Value,
+            has_mask = false
+           },
+    experimenter = ?INFOBLOX_EXPERIMENTER
+    }.
+
+odu_sigid(Value) ->
+  #ofp_oxm_experimenter{
+    body = #ofp_field{
+            name = odu_sigid,
+            value = Value,
+            has_mask = false
+           },
+    experimenter = ?INFOBLOX_EXPERIMENTER
+    }.
+
+och_sigtype(Value) ->
+  #ofp_oxm_experimenter{
+    body = #ofp_field{
+            name = och_sigtype,
+            value = Value,
+            has_mask = false
+           },
+    experimenter = ?INFOBLOX_EXPERIMENTER
+    }.
+
+och_sigid(Value) ->
+  #ofp_oxm_experimenter{
+    body = #ofp_field{
+            name = och_sigid,
+            value = Value,
+            has_mask = false
+           },
+    experimenter = ?INFOBLOX_EXPERIMENTER
+    }.
+
+
 
 %%=============================================================================
 %% Instructions
