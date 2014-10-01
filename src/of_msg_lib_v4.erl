@@ -986,44 +986,32 @@ ipv6_exthdr(Val, Mask) when bit_size(Val) == 9, bit_size(Mask) == 9 ->
                mask = Mask}.
 
 odu_sigtype(Value) ->
-  #ofp_oxm_experimenter{
-    body = #ofp_field{
-            name = odu_sigtype,
-            value = Value,
-            has_mask = false
-           },
-    experimenter = ?INFOBLOX_EXPERIMENTER
-    }.
+    #ofp_field{
+       class = infoblox,
+       name = odu_sigtype,
+       value = Value,
+       has_mask = false}.
 
 odu_sigid(Value) ->
-  #ofp_oxm_experimenter{
-    body = #ofp_field{
-            name = odu_sigid,
-            value = Value,
-            has_mask = false
-           },
-    experimenter = ?INFOBLOX_EXPERIMENTER
-    }.
+    #ofp_field{
+       class = infoblox,
+       name = odu_sigid,
+       value = Value,
+       has_mask = false}.
 
 och_sigtype(Value) ->
-  #ofp_oxm_experimenter{
-    body = #ofp_field{
-            name = och_sigtype,
-            value = Value,
-            has_mask = false
-           },
-    experimenter = ?INFOBLOX_EXPERIMENTER
-    }.
+    #ofp_field{
+       class = infoblox,
+       name = och_sigtype,
+       value = Value,
+       has_mask = false}.
 
 och_sigid(Value) ->
-  #ofp_oxm_experimenter{
-    body = #ofp_field{
-            name = och_sigid,
-            value = Value,
-            has_mask = false
-           },
-    experimenter = ?INFOBLOX_EXPERIMENTER
-    }.
+    #ofp_field{
+       class = infoblox,
+       name = och_sigid,
+       value = Value,
+       has_mask = false}.
 
 
 
