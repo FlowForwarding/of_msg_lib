@@ -72,7 +72,9 @@ of_msg_lib_test_() ->
      {"set async configuration", fun set_async_configuration/0},
      {"meter add", fun meter_add/0},
      {"meter modify", fun meter_modify/0},
-     {"meter delete", fun meter_delete/0}
+     {"meter delete", fun meter_delete/0},
+     {"optical_transport_port_desc_request", fun optical_transport_port_desc_request/0},
+     {"optical_transport_status", fun optical_transport_status/0}
     ].
 
 decode_test_() ->
@@ -108,7 +110,8 @@ decode_test_() ->
      {"Error msg experimenter", fun dec_error_msg_experimenter/0},
      {"Echo request", fun dec_echo_request/0},
      {"Echo reply", fun dec_echo_reply/0},
-     {"Experimenter", fun dec_experimenter/0}
+     {"Experimenter", fun dec_experimenter/0},
+     {"decode_optical_transport_port_desc_reply_v6", fun decode_optical_transport_port_desc_reply_v6/0}
     ].
 
 create_error_v4() ->
@@ -384,6 +387,9 @@ meter_delete() ->
     Msg = of_msg_lib:meter_delete(?V4, 10),
     ?assertEqual(Msg, encode_decode(?V4, Msg)).
 
+optical_transport_port_desc_request() ->
+    Msg = of_msg_lib:optical_transport_port_desc_request(?V4,1,1),
+    ?assertEqual(Msg, encode_decode(?V4, Msg)).
 
 in_hello_v4() ->
     Body = #ofp_hello{elements = [{versionbitmap, [5,4]}]},
@@ -1318,6 +1324,149 @@ dec_experimenter() ->
                                     {exp_type, Exp_type},
                                     {data, Data}]},
     Msg = #ofp_message{version = ?V4, xid=2, body = Body},
+    Res = of_msg_lib:decode(Msg),
+    ?assertEqual(Expect, Res).
+
+decode_optical_transport_port_desc_reply_v6() ->
+    V = [#ofp_port_optical_transport_layer_entry{
+            layer_class = port,
+            signal_type = otsn,
+            adaptation  = ots_oms
+         },
+         #ofp_port_optical_transport_layer_entry{
+            layer_class = och,
+            signal_type = fix_grid,
+            adaptation  = oduk_oduij
+         }
+    ],
+    F = [#ofp_port_optical_transport_application_code{
+            feature_type    = opt_interface_class,
+            oic_type        = proprietary,
+            app_code        = <<"arbitrary">>
+         },
+         #ofp_port_optical_transport_layer_stack{
+            feature_type    = layer_stack,
+            value           = V
+    }], 
+    Pr = [#ofp_port_desc_prop_optical_transport {
+            type                = optical_transport,
+            port_signal_type    = otsn,
+            reserved            = 0,
+            features            = F
+    }],
+    P = [#ofp_port_v6{
+            port_no     = 1,
+            hw_addr     = <<8,0,39,255,136,50>>,
+            name        = <<"Port1">>,
+            config      = [],
+            state       = [live],
+            properties  = Pr
+    }],
+    PDR = #ofp_port_desc_reply_v6 { body = P },
+    EncData = ofp_v4_encode:encode_body(PDR),
+    Body = #ofp_experimenter_reply{
+                experimenter    = 1,
+                exp_type        = 1,
+                data            = EncData
+            },
+    Expect = {experimenter_reply,333,[ {flags,         []},
+                                    {experimenter,  1},
+                                    {exp_type,      1},
+                                    {data,          EncData}
+                                  ]},
+    Msg = #ofp_message{
+        version = 4,
+        type = experimenter,
+        xid = 333,
+        body = Body
+    },
+    Res = of_msg_lib:decode(Msg),
+    ?assertEqual(Expect, Res),
+
+    DecData = of_msg_lib_v4:decode(PDR),
+    io:format("~p\n",[DecData]),
+
+    {ok,FPID} = file:open("test.txt",[write]),
+    file:write(FPID, DecData),
+
+    ExpPDR= {port_desc_reply_v6,[{flags,[]},
+                     {ports,[[{port_no,1},
+                              {hw_addr,<<8,0,39,255,136,50>>},
+                              {name,<<"Port1">>},
+                              {config,[]},
+                              {state,[live]},
+                              {properties,[[{type,optical_transport},
+                                            {port_signal_type,otsn},
+                                            {reserved,0},
+                                            {features,[[{feature_type,opt_interface_class},
+                                                        {oic_type,proprietary},
+                                                        {app_code,<<"arbitrary">>}],
+                                                       [{feature_type,layer_stack},
+                                                        {value,[[{layer_class,port},
+                                                                 {signal_type,otsn},
+                                                                 {adaptation,ots_oms}],
+                                                                [{layer_class,och},
+                                                                 {signal_type,fix_grid},
+                                                                 {adaptation,oduk_oduij}]]}]]}]]}]]}]},
+    ?assertEqual(DecData,ExpPDR).
+
+optical_transport_status() ->
+     V = [#ofp_port_optical_transport_layer_entry{
+            layer_class = port,
+            signal_type = otsn,
+            adaptation  = ots_oms
+         },
+         #ofp_port_optical_transport_layer_entry{
+            layer_class = och,
+            signal_type = fix_grid,
+            adaptation  = oduk_oduij
+         }
+    ],
+    F = [#ofp_port_optical_transport_application_code{
+            feature_type    = opt_interface_class,
+            oic_type        = proprietary,
+            app_code        = <<"arbitrary">>
+         },
+         #ofp_port_optical_transport_layer_stack{
+            feature_type    = layer_stack,
+            value           = V
+    }], 
+    Pr = [#ofp_port_desc_prop_optical_transport {
+            type                = optical_transport,
+            port_signal_type    = otsn,
+            reserved            = 0,
+            features            = F
+    }],
+    P = #ofp_port_v6{
+            port_no     = 1,
+            hw_addr     = <<8,0,39,255,136,50>>,
+            name        = <<"Port1">>,
+            config      = [],
+            state       = [live],
+            properties  = Pr
+    },
+    PS = 
+        #ofp_port_status{
+            reason = add,
+            desc = P
+        },
+    EncData = ofp_v4_encode:encode_body(PS),
+    Body = #ofp_experimenter_reply{
+                experimenter    = 1,
+                exp_type        = 1,
+                data            = EncData
+            },
+    Expect = {experimenter_reply,44,[ {flags,       []},
+                                      {experimenter,1},
+                                      {exp_type,    1},
+                                      {data,        EncData}
+                                  ]},
+    Msg = #ofp_message{
+        version = 4,
+        type = experimenter,
+        xid = 44,
+        body = Body
+    },
     Res = of_msg_lib:decode(Msg),
     ?assertEqual(Expect, Res).
 

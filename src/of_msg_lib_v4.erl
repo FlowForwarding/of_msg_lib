@@ -65,7 +65,9 @@
          meter_add/3,
          meter_modify/3,
          meter_delete/1,
-         decode/1]).
+         oe_get_port_descriptions/0,
+         decode/1
+         ]).
 
 -export([in_port/1,
          in_phy_port/1,
@@ -106,7 +108,11 @@
          mpls_bos/1,
          pbb_isid/1, pbb_isid/2,
          tunnel_id/1, tunnel_id/2,
-         ipv6_exthdr/1, ipv6_exthdr/2
+         ipv6_exthdr/1, ipv6_exthdr/2,
+         odu_sigtype/1,
+         odu_sigid/1,
+         och_sigtype/1,
+         och_sigid/1
         ]).
 
 -include_lib("of_protocol/include/of_protocol.hrl").
@@ -979,6 +985,36 @@ ipv6_exthdr(Val, Mask) when bit_size(Val) == 9, bit_size(Mask) == 9 ->
                has_mask = true,
                mask = Mask}.
 
+odu_sigtype(Value) ->
+    #ofp_field{
+       class = infoblox,
+       name = odu_sigtype,
+       value = Value,
+       has_mask = false}.
+
+odu_sigid(Value) ->
+    #ofp_field{
+       class = infoblox,
+       name = odu_sigid,
+       value = Value,
+       has_mask = false}.
+
+och_sigtype(Value) ->
+    #ofp_field{
+       class = infoblox,
+       name = och_sigtype,
+       value = Value,
+       has_mask = false}.
+
+och_sigid(Value) ->
+    #ofp_field{
+       class = infoblox,
+       name = och_sigid,
+       value = Value,
+       has_mask = false}.
+
+
+
 %%=============================================================================
 %% Instructions
 mk_instructions(Is) ->
@@ -1059,6 +1095,12 @@ mk_action({push_mpls, EtherType}) ->
 mk_action({pop_mpls, EtherType}) ->
     #ofp_action_pop_mpls{ethertype = EtherType};
 
+mk_action({set_field, Name = och_sigid, Value}) ->
+    SetField = #ofp_action_set_field{
+                  field = #ofp_field{name=Name,value=Value}},
+    #ofp_action_experimenter{experimenter = ?INFOBLOX_EXPERIMENTER,
+                             data = SetField};
+
 mk_action({set_field, Name, Value}) ->
     #ofp_action_set_field{field = #ofp_field{name=Name,value=Value}};
 
@@ -1098,6 +1140,11 @@ mk_bucket({Weight, PortNo, GroupId, Actions}) ->
        watch_port = PortNo,
        watch_group = GroupId,
        actions = mk_actions(Actions)}.
+
+oe_get_port_descriptions() ->
+    #ofp_experimenter_request{experimenter = ?INFOBLOX_EXPERIMENTER,
+                              exp_type = port_desc,
+                              data = <<>>}.
 
 %%%=========================================================================
 %%% Decode Normal Replies
@@ -1343,7 +1390,11 @@ decode(#ofp_experimenter{
          }) ->
     {experimenter, [{experimenter, Experimenter},
                     {exp_type, Exp_type},
-                    {data, Data}]}.
+                    {data, Data}]};
+
+decode(#ofp_port_desc_reply_v6{ flags = Flags, body = Ports }) ->
+    {port_desc_reply_v6, [{flags, Flags},
+                       {ports, [dec_port_v6(Port)|| Port <- Ports]}]}.
 
 %%% ===========================================================================
 dec_packet_queues(Queues) ->
@@ -1719,6 +1770,50 @@ dec_port(#ofp_port{
      {peer, Peer},
      {curr_speed, Curr_speed},
      {max_speed, Max_speed}].
+
+dec_port_v6(#ofp_port_v6{ port_no = PortNr,
+                    hw_addr = HwAddr,
+                    name = Name,
+                    config = Config,
+                    state = State,
+                    properties = Properties }) ->
+    [{port_no, PortNr},
+     {hw_addr, HwAddr},
+     {name, Name},
+     {config, Config},
+     {state, State},
+     {properties, [ dec_port_desc_property_v6(P) || P <- Properties ]}].
+
+dec_port_desc_property_v6(#ofp_port_desc_prop_optical_transport{ 
+                            type = T,
+                            port_signal_type = PST,
+                            reserved = R,
+                            features = F }) ->
+    [{type,T},
+     {port_signal_type,PST},
+     {reserved,R},
+     {features,[ dec_optical_transport_port_features(Fi) || Fi <- F]}].
+
+dec_optical_transport_port_features(#ofp_port_optical_transport_application_code{
+                                        feature_type=FT,
+                                        oic_type=OICT,
+                                        app_code=AC}) ->
+    [{feature_type,FT},
+     {oic_type,OICT},
+     {app_code,AC}];
+dec_optical_transport_port_features(#ofp_port_optical_transport_layer_stack{
+                                        feature_type=FT,
+                                        value=V}) ->
+    [{feature_type,FT},
+     {value,[ dec_optical_transport_port_layer_entries(Vi) || Vi <- V ]}].
+
+dec_optical_transport_port_layer_entries(#ofp_port_optical_transport_layer_entry{
+                                            layer_class = L,
+                                            signal_type = S,
+                                            adaptation  = A}) ->
+    [{layer_class,L},
+     {signal_type,S},
+     {adaptation,A}].
 
 dec_group_stats(#ofp_group_stats{
                    group_id = Group_id,
