@@ -388,7 +388,7 @@ meter_delete() ->
     ?assertEqual(Msg, encode_decode(?V4, Msg)).
 
 optical_transport_port_desc_request() ->
-    Msg = of_msg_lib:optical_transport_port_desc_request(?V4,1,1),
+    Msg = of_msg_lib:oe_get_port_descriptions(?V4),
     ?assertEqual(Msg, encode_decode(?V4, Msg)).
 
 in_hello_v4() ->
