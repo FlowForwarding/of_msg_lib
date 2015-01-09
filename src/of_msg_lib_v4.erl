@@ -1233,6 +1233,16 @@ decode(#ofp_meter_features_reply{
 
 decode(#ofp_experimenter_reply{
           flags = Flags,
+          experimenter = ?INFOBLOX_EXPERIMENTER,
+          exp_type = port_desc,
+          data = Ports
+         }) ->
+    {experimenter_reply, [{flags, Flags},
+                          {experimenter, ?INFOBLOX_EXPERIMENTER},
+                          {exp_type, port_desc},
+                          {ports, [dec_port_v6(Port)|| Port <- Ports]}]};
+decode(#ofp_experimenter_reply{
+          flags = Flags,
           experimenter = Experimenter,
           exp_type = Exp_type,
           data = Data
@@ -1390,11 +1400,7 @@ decode(#ofp_experimenter{
          }) ->
     {experimenter, [{experimenter, Experimenter},
                     {exp_type, Exp_type},
-                    {data, Data}]};
-
-decode(#ofp_port_desc_reply_v6{ flags = Flags, body = Ports }) ->
-    {port_desc_reply_v6, [{flags, Flags},
-                       {ports, [dec_port_v6(Port)|| Port <- Ports]}]}.
+                    {data, Data}]}.
 
 %%% ===========================================================================
 dec_packet_queues(Queues) ->
@@ -1811,9 +1817,7 @@ dec_optical_transport_port_layer_entries(#ofp_port_optical_transport_layer_entry
                                             layer_class = L,
                                             signal_type = S,
                                             adaptation  = A}) ->
-    [{layer_class,L},
-     {signal_type,S},
-     {adaptation,A}].
+    [{layer_class,L}, {signal_type,S}, {adaptation,A}].
 
 dec_group_stats(#ofp_group_stats{
                    group_id = Group_id,

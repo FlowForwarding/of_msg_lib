@@ -1331,84 +1331,65 @@ decode_optical_transport_port_desc_reply_v6() ->
     V = [#ofp_port_optical_transport_layer_entry{
             layer_class = port,
             signal_type = otsn,
-            adaptation  = ots_oms
-         },
+            adaptation  = ots_oms},
          #ofp_port_optical_transport_layer_entry{
             layer_class = och,
             signal_type = fix_grid,
-            adaptation  = oduk_oduij
-         }
-    ],
+            adaptation  = oduk_oduij}],
     F = [#ofp_port_optical_transport_application_code{
             feature_type    = opt_interface_class,
             oic_type        = proprietary,
-            app_code        = <<"arbitrary">>
-         },
+            app_code        = <<"arbitrary">>},
          #ofp_port_optical_transport_layer_stack{
             feature_type    = layer_stack,
-            value           = V
-    }], 
+            value           = V}],
     Pr = [#ofp_port_desc_prop_optical_transport {
             type                = optical_transport,
             port_signal_type    = otsn,
             reserved            = 0,
-            features            = F
-    }],
-    P = [#ofp_port_v6{
+            features            = F}],
+    Data = [#ofp_port_v6{
             port_no     = 1,
             hw_addr     = <<8,0,39,255,136,50>>,
             name        = <<"Port1">>,
             config      = [],
             state       = [live],
-            properties  = Pr
-    }],
-    PDR = #ofp_port_desc_reply_v6 { body = P },
-    EncData = ofp_v4_encode:encode_body(PDR),
+            properties  = Pr}],
     Body = #ofp_experimenter_reply{
-                experimenter    = 1,
-                exp_type        = 1,
-                data            = EncData
-            },
-    Expect = {experimenter_reply,333,[ {flags,         []},
-                                    {experimenter,  1},
-                                    {exp_type,      1},
-                                    {data,          EncData}
-                                  ]},
-    Msg = #ofp_message{
-        version = 4,
-        type = experimenter,
-        xid = 333,
-        body = Body
-    },
-    Res = of_msg_lib:decode(Msg),
-    ?assertEqual(Expect, Res),
-
-    DecData = of_msg_lib_v4:decode(PDR),
-    io:format("~p\n",[DecData]),
-
-    {ok,FPID} = file:open("test.txt",[write]),
-    file:write(FPID, DecData),
-
-    ExpPDR= {port_desc_reply_v6,[{flags,[]},
-                     {ports,[[{port_no,1},
-                              {hw_addr,<<8,0,39,255,136,50>>},
-                              {name,<<"Port1">>},
-                              {config,[]},
-                              {state,[live]},
-                              {properties,[[{type,optical_transport},
-                                            {port_signal_type,otsn},
-                                            {reserved,0},
-                                            {features,[[{feature_type,opt_interface_class},
-                                                        {oic_type,proprietary},
-                                                        {app_code,<<"arbitrary">>}],
-                                                       [{feature_type,layer_stack},
-                                                        {value,[[{layer_class,port},
-                                                                 {signal_type,otsn},
-                                                                 {adaptation,ots_oms}],
-                                                                [{layer_class,och},
-                                                                 {signal_type,fix_grid},
-                                                                 {adaptation,oduk_oduij}]]}]]}]]}]]}]},
-    ?assertEqual(DecData,ExpPDR).
+              experimenter    = ?INFOBLOX_EXPERIMENTER,
+              exp_type        = port_desc,
+              data            = Data},
+    Msg = #ofp_message{version = 4,
+                       type = multipart_reply,
+                       xid = 333,
+                       body = Body},
+    Actual = of_msg_lib:decode(Msg),
+    ExpectedPort =
+        [{port_no,1},
+         {hw_addr,<<8,0,39,255,136,50>>},
+         {name,<<"Port1">>},
+         {config,[]},
+         {state,[live]},
+         {properties, [[{type,optical_transport},
+                        {port_signal_type,otsn},
+                        {reserved,0},
+                        {features, [[{feature_type,opt_interface_class},
+                                     {oic_type,proprietary},
+                                     {app_code,<<"arbitrary">>}],
+                                    [{feature_type,layer_stack},
+                                     {value, [[{layer_class,port},
+                                               {signal_type,otsn},
+                                               {adaptation,ots_oms}],
+                                              [{layer_class,och},
+                                               {signal_type,fix_grid},
+                                               {adaptation,oduk_oduij}]
+                                             ]}]]
+                        }]]}],
+    Expected = {experimenter_reply,333,[{flags,         []},
+                                        {experimenter,  ?INFOBLOX_EXPERIMENTER},
+                                        {exp_type,      port_desc},
+                                        {ports,         [ExpectedPort]}]},
+    ?assertEqual(Expected, Actual).
 
 optical_transport_status() ->
      V = [#ofp_port_optical_transport_layer_entry{
