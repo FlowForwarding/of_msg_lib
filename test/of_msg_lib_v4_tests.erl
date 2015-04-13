@@ -36,6 +36,8 @@ of_msg_lib_test_() ->
      {"Send packet", fun send_packet/0},
      {"Flow add", fun flow_add/0},
      {"Flow add", fun flow_add2/0},
+     {"Flow add with implicitly added fields", fun flow_add_implicit_required_fields/0},
+     {"Flow add with implicitly added fields", fun flow_add_implicit_required_fields2/0},
      {"Flow modify", fun flow_modify/0},
      {"flow delete", fun flow_delete/0},
      {"group add", fun group_add/0},
@@ -174,6 +176,50 @@ flow_add2() ->
             {cookie_mask, <<0,0,0,0,0,0,0,0>>}],
     Msg = of_msg_lib:flow_add(?V4, Matches, Instructions, Opts),
     ?assertEqual(Msg, encode_decode(?V4, Msg)).
+
+flow_add_implicit_required_fields() ->
+    Matches = [{in_port, <<1:32>>},
+               {ipv4_src, <<1,2,3,4>>},
+               {udp_src, <<53:16>>}],
+    Instructions = [{apply_actions, [{output, 2, no_buffer},
+                                     {output, controller, no_buffer}]}],
+    Opts = [{table_id, 0},
+            {priority, 100},
+            {idle_timeout, 0},
+            {cookie, <<0,0,0,0,0,0,0,10>>},
+            {cookie_mask, <<0,0,0,0,0,0,0,0>>}],
+    Msg1 = of_msg_lib:flow_add(?V4, Matches, Instructions, Opts),
+    ?assertEqual(Msg1, encode_decode(?V4, Msg1)),
+
+    MatchesFull = [{in_port, <<1:32>>},
+                   {eth_type, 2048},
+                   {ipv4_src, <<1,2,3,4>>},
+                   {ip_proto, <<17:8>>},
+                   {udp_src, <<53:16>>}],
+    Msg2 = of_msg_lib:flow_add(?V4, MatchesFull, Instructions, Opts),
+    ?assertEqual(Msg2, encode_decode(?V4, Msg1)).
+
+flow_add_implicit_required_fields2() ->
+    Matches = [{in_port, <<1:32>>},
+               {ipv4_src, <<1,2,0,0>>, <<255,255,0,0>>},
+               {udp_src, <<53:16>>}],
+    Instructions = [{apply_actions, [{output, 2, no_buffer},
+                                     {output, controller, no_buffer}]}],
+    Opts = [{table_id, 0},
+            {priority, 100},
+            {idle_timeout, 0},
+            {cookie, <<0,0,0,0,0,0,0,10>>},
+            {cookie_mask, <<0,0,0,0,0,0,0,0>>}],
+    Msg1 = of_msg_lib:flow_add(?V4, Matches, Instructions, Opts),
+    ?assertEqual(Msg1, encode_decode(?V4, Msg1)),
+
+    MatchesFull = [{in_port, <<1:32>>},
+                   {eth_type, 2048},
+                   {ipv4_src, <<1,2,0,0>>, <<255,255,0,0>>},
+                   {ip_proto, <<17:8>>},
+                   {udp_src, <<53:16>>}],
+    Msg2 = of_msg_lib:flow_add(?V4, MatchesFull, Instructions, Opts),
+    ?assertEqual(Msg2, encode_decode(?V4, Msg1)).
 
 flow_modify() ->
     Msg = of_msg_lib:flow_modify(?V4,
