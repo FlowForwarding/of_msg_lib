@@ -724,7 +724,8 @@ mk_match({Field,Val}, Acc) ->
     Acc1 = add_required_fields(Field, Acc),
     [?MODULE:Field(Val)|Acc1];
 mk_match({Field,Val,Mask}, Acc) ->
-    [?MODULE:Field(Val,Mask)|Acc].
+    Acc1 = add_required_fields(Field, Acc),
+    [?MODULE:Field(Val,Mask)|Acc1].
 
 add_required_fields(Field, Acc) ->
     case required(Field) of
