@@ -1582,7 +1582,9 @@ dec_match(#ofp_match{ fields = Fields }) ->
 dec_field(#ofp_field{ name = Name, value = Val, has_mask = true, mask = Mask }) ->
     {Name, Val, Mask};
 dec_field(#ofp_field{ name = Name, value = Val, has_mask = false }) ->
-    {Name, Val}.
+    {Name, Val};
+dec_field(#ofp_oxm_experimenter{ experimenter = ?INFOBLOX_EXPERIMENTER, body = Field = #ofp_field{} }) ->
+    dec_field(Field).
 
 %%% ================================================================================
 dec_flow_stats(#ofp_flow_stats{
