@@ -20,7 +20,7 @@
 -module(of_msg_lib_v5).
 
 -export([create_error/2,
-         hello/1, 
+         hello/1,
          echo_request/1,
          echo_reply/1,
          get_features/0,
@@ -218,7 +218,7 @@ flow_delete(Matches, Opts) ->
       }.
 
 flow_monitor_request_add(Flags,Matches,MonitorId,Opts) ->
-    #ofp_flow_monitor_request{ 
+    #ofp_flow_monitor_request{
         flags = Flags,
         monitor_id = MonitorId,
         out_port = get_opt(out_port, Opts, any),
@@ -230,7 +230,7 @@ flow_monitor_request_add(Flags,Matches,MonitorId,Opts) ->
     }.
 
 flow_monitor_request_delete(Flags,Matches,MonitorId,Opts) ->
-    #ofp_flow_monitor_request{ 
+    #ofp_flow_monitor_request{
         flags = Flags,
         monitor_id = MonitorId,
         out_port = get_opt(out_port, Opts, any),
@@ -242,7 +242,7 @@ flow_monitor_request_delete(Flags,Matches,MonitorId,Opts) ->
     }.
 
 flow_monitor_request_modify(Flags,Matches,MonitorId,Opts) ->
-    #ofp_flow_monitor_request{ 
+    #ofp_flow_monitor_request{
         flags = Flags,
         monitor_id = MonitorId,
         out_port = get_opt(out_port, Opts, any),
@@ -364,7 +364,7 @@ set_table_mod_eviction(Properties,Opts) ->
         table_id = get_opt(table_id,Opts,all),
         config = [eviction],
         properties = [ mk_table_mod_property(Property) || Property <- Properties ]
-    }. 
+    }.
 set_table_mod_vacancy_events(Properties,Opts) ->
     #ofp_table_mod{
         table_id = get_opt(table_id,Opts,all),
@@ -585,7 +585,7 @@ experimenter(ExpId, Type, Data) ->
        experimenter = ExpId,
        exp_type = Type,
        data = Data
-      }.      
+      }.
 
 %% ofp_experimenter_request
 experimenter(Flags, ExpId, Type, Data) ->
@@ -1013,18 +1013,30 @@ arp_tha(Val, Mask) when byte_size(Val) == 6, byte_size(Mask) == 6->
                has_mask = true,
                mask = Mask}.
 
+ipv6_src({ S1, S2, S3, S4, S5, S6, S7, S8 }) ->
+    ipv6_src(<<S1:16, S2:16, S3:16, S4:16, S5:16, S6:16, S7:16, S8:16>>);
 ipv6_src(Val) when byte_size(Val) == 16 ->
     #ofp_field{name = ipv6_src,
                value = Val}.
+ipv6_src({ S1, S2, S3, S4, S5, S6, S7, S8 },
+         { M1, M2, M3, M4, M5, M6, M7, M8 }) ->
+    ipv6_src(<<S1:16, S2:16, S3:16, S4:16, S5:16, S6:16, S7:16, S8:16>>,
+             <<M1:16, M2:16, M3:16, M4:16, M5:16, M6:16, M7:16, M8:16>>);
 ipv6_src(Val, Mask) when byte_size(Val) == 16, byte_size(Mask) == 16->
     #ofp_field{name = ipv6_src,
                value = Val,
                has_mask = true,
                mask = Mask}.
 
+ipv6_dst({ D1, D2, D3, D4, D5, D6, D7, D8 }) ->
+    ipv6_dst(<<D1:16, D2:16, D3:16, D4:16, D5:16, D6:16, D7:16, D8:16>>);
 ipv6_dst(Val) when byte_size(Val) == 16 ->
     #ofp_field{name = ipv6_dst,
                value = Val}.
+ipv6_dst({ D1, D2, D3, D4, D5, D6, D7, D8 },
+         { M1, M2, M3, M4, M5, M6, M7, M8 }) ->
+    ipv6_dst(<<D1:16, D2:16, D3:16, D4:16, D5:16, D6:16, D7:16, D8:16>>,
+             <<M1:16, M2:16, M3:16, M4:16, M5:16, M6:16, M7:16, M8:16>>);
 ipv6_dst(Val, Mask) when byte_size(Val) == 16, byte_size(Mask) == 16->
     #ofp_field{name = ipv6_dst,
                value = Val,
@@ -1242,7 +1254,7 @@ mk_table_mod_property({table_mod_prop_experimenter,Experimenter,ExpType,Data}) -
 mk_port_mod_properties({port_mod_prop_ethernet,Advertise}) ->
     #ofp_port_mod_prop_ethernet{ advertise = Advertise };
 mk_port_mod_properties({port_mod_prop_optical,Configure,FreqLmda,FlOffset,GridSpan,TxPwr}) ->
-    #ofp_port_mod_prop_optical{ configure = Configure, 
+    #ofp_port_mod_prop_optical{ configure = Configure,
                                 freq_lmda = FreqLmda,
                                 fl_offset = FlOffset,
                                 grid_span = GridSpan,
@@ -1861,7 +1873,7 @@ dec_port_stats(#ofp_port_stats{
      {rx_dropped, Rx_dropped},
      {tx_dropped, Tx_dropped},
      {rx_errors, Rx_errors},
-     {tx_errors, Tx_errors}, 
+     {tx_errors, Tx_errors},
      {properties, [ dec_port_stats_properties(P) || P <- Properties ]}].
 
 dec_port_stats_properties(#ofp_port_stats_prop_ethernet{ rx_frame_err = FrameErr,
@@ -1941,7 +1953,7 @@ dec_port(#ofp_port{ port_no = PortNr,
      {state, State},
      {properties, [ dec_port_desc_property(P) || P <- Properties ]}].
 
-dec_port_desc_property(#ofp_port_desc_prop_ethernet{ 
+dec_port_desc_property(#ofp_port_desc_prop_ethernet{
                             curr = Curr,
                             advertised = Advertised,
                             supported = Supported,
@@ -1954,7 +1966,7 @@ dec_port_desc_property(#ofp_port_desc_prop_ethernet{
      {peer,Peer},
      {curr_speed,CurrSpeed},
      {max_speed,MaxSpeed}];
-dec_port_desc_property(#ofp_port_desc_prop_optical{ 
+dec_port_desc_property(#ofp_port_desc_prop_optical{
                             supported = Supported,
                             tx_min_freq_lmda = TxMinFreqLmda,
                             tx_max_freq_lmda = TxMaxFreqLmda,
@@ -2042,7 +2054,7 @@ dec_table_desc(#ofp_table_desc{ table_id = TableId,
 
 dec_table_mod_property(#ofp_table_mod_prop_eviction{ flags = Flags }) ->
     [{flags,Flags}];
-dec_table_mod_property(#ofp_table_mod_prop_vacancy{vacancy_down = VacancyDown, 
+dec_table_mod_property(#ofp_table_mod_prop_vacancy{vacancy_down = VacancyDown,
                                                    vacancy_up = VacancyUp,
                                                    vacancy = Vacancy}) ->
     [{vacancy_down,VacancyDown},
@@ -2055,7 +2067,7 @@ dec_table_mod_property(#ofp_table_mod_prop_experimenter{experimenter = Experimen
      {exp_type, ExpType},
      {data, Data}].
 
-dec_queue_desc(#ofp_queue_desc{ port_no = PortNo, 
+dec_queue_desc(#ofp_queue_desc{ port_no = PortNo,
                                 queue_id = QueueId,
                                 properties = Properties }) ->
     [{port_no,PortNo},
