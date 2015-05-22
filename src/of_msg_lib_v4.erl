@@ -897,18 +897,30 @@ arp_tha(Val, Mask) when byte_size(Val) == 6, byte_size(Mask) == 6->
                has_mask = true,
                mask = Mask}.
 
+ipv6_src({ S1, S2, S3, S4, S5, S6, S7, S8 }) ->
+    ipv6_src(<<S1:16, S2:16, S3:16, S4:16, S5:16, S6:16, S7:16, S8:16>>);
 ipv6_src(Val) when byte_size(Val) == 16 ->
     #ofp_field{name = ipv6_src,
                value = Val}.
+ipv6_src({ S1, S2, S3, S4, S5, S6, S7, S8 },
+         { M1, M2, M3, M4, M5, M6, M7, M8 }) ->
+    ipv6_src(<<S1:16, S2:16, S3:16, S4:16, S5:16, S6:16, S7:16, S8:16>>,
+             <<M1:16, M2:16, M3:16, M4:16, M5:16, M6:16, M7:16, M8:16>>);
 ipv6_src(Val, Mask) when byte_size(Val) == 16, byte_size(Mask) == 16->
     #ofp_field{name = ipv6_src,
                value = Val,
                has_mask = true,
                mask = Mask}.
 
+ipv6_dst({ D1, D2, D3, D4, D5, D6, D7, D8 }) ->
+    ipv6_dst(<<D1:16, D2:16, D3:16, D4:16, D5:16, D6:16, D7:16, D8:16>>);
 ipv6_dst(Val) when byte_size(Val) == 16 ->
     #ofp_field{name = ipv6_dst,
                value = Val}.
+ipv6_dst({ D1, D2, D3, D4, D5, D6, D7, D8 },
+         { M1, M2, M3, M4, M5, M6, M7, M8 }) ->
+    ipv6_dst(<<D1:16, D2:16, D3:16, D4:16, D5:16, D6:16, D7:16, D8:16>>,
+             <<M1:16, M2:16, M3:16, M4:16, M5:16, M6:16, M7:16, M8:16>>);
 ipv6_dst(Val, Mask) when byte_size(Val) == 16, byte_size(Mask) == 16->
     #ofp_field{name = ipv6_dst,
                value = Val,
@@ -1793,7 +1805,7 @@ dec_port_v6(#ofp_port_v6{ port_no = PortNr,
      {state, State},
      {properties, [ dec_port_desc_property_v6(P) || P <- Properties ]}].
 
-dec_port_desc_property_v6(#ofp_port_desc_prop_optical_transport{ 
+dec_port_desc_property_v6(#ofp_port_desc_prop_optical_transport{
                             type = T,
                             port_signal_type = PST,
                             reserved = R,
