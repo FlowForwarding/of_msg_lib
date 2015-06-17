@@ -1,7 +1,7 @@
 {application, of_msg_lib,
  [
   {description, "OpenFlow Protocol message library"},
-  {vsn, "0.2"},
+  {vsn, "0.3"},
   {registered, []},
   {applications, [
                   kernel,
